@@ -9,8 +9,8 @@ function inspectPredData(trainData)
     ylabel(ax3, 'Output Velocity');
     
     for ix=1:length(trainData)
-        tqout = trainData{ix}(2,:);
-        wout = trainData{ix}(3,:);
+        tqout = trainData{ix}(1,:);
+        wout = trainData{ix}(2,:);
     
         % plot resampled data
         plot(ax2, tqout)
