@@ -29,13 +29,53 @@ trainData = trainningDataConv(out,resampleTimeStep);
 inspectTrainData(trainData)
 
 %% LSTM Architecture
-
 layers = [
-    sequenceInputLayer(1)
-    lstmLayer(128)
-    fullyConnectedLayer(1)
+    sequenceInputLayer(3,Normalization="rescale-zero-one")
+    fullyConnectedLayer(200)
+    reluLayer
+    % lstmLayer(200)
+    lstmLayer(200)
+    reluLayer
+    fullyConnectedLayer(2)
     regressionLayer];
 
 %% Partition trainning data
+trainPercentage = 0.8; % the percentage of the data that they will be used for training
+                       % the rest will be used for test
 
+[dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
 
+%% Preprocess
+XTrain = {};
+TTrain = {};
+
+for n = 1:numel(dataTrain)
+    X = dataTrain{n};
+    XTrain{n} = X(:,1:end-1);
+    TTrain{n} = X(2:3,2:end);
+end
+
+%% Train LSTM Network
+options = trainingOptions("adam", ...
+    MaxEpochs=1000, ...
+    GradientThreshold=1, ...
+    InitialLearnRate=5e-3, ...
+    LearnRateSchedule="piecewise", ...
+    LearnRateDropPeriod=1e4, ...
+    LearnRateDropFactor=0.6, ...
+    Verbose=0, ...
+    Plots="training-progress");
+
+net = trainNetwork(XTrain,TTrain,layers,options);
+
+%% Test LSTM Network
+for n = 1:numel(dataTest)
+    X = dataTest{n};
+    XTest{n} = X(:,1:end-1);
+    TTest{n} = X(2:3,2:end);
+end
+
+results = predict(net,XTest,SequencePaddingDirection="left")
+
+%% Inspect NN response
+inspectTrainData(results)
