@@ -5,7 +5,6 @@ trainDir = fullfile(proj.RootFolder, 'simplified_LSTMRedcuction', 'TrainInput');
 %% Generate simulation inputs
 trainTqs = [0.2:0.1:1.5];
 nameList = {};
-
 numCases = length(trainTqs);
 
 for ix=1:numCases
