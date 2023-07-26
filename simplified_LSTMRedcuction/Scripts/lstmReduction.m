@@ -36,4 +36,6 @@ layers = [
     fullyConnectedLayer(1)
     regressionLayer];
 
+%% Partition trainning data
+
 

@@ -6,6 +6,5 @@ function generateDatasetTq(maxT, name, trainDir)
     sdata{1}.Name = name;
     fileName = fullfile(trainDir, [name '.mat']);
 
-
     save(fileName, "sdata")
 end
