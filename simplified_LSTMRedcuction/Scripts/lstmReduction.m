@@ -25,6 +25,9 @@ out = parsim(simIn);
 resampleTimeStep = 0.01;
 trainData = trainningDataConv(out,resampleTimeStep);
 
+%% Inspect resampled data
+inspectTrainData(trainData)
+
 %% LSTM Architecture
 
 layers = [
