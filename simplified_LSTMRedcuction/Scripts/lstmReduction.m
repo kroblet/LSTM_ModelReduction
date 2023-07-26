@@ -19,7 +19,7 @@ end
 %% Simulate
 out = parsim(simIn);
 
-%% Save results
+%% Configure trainning data format
 trainData = {};
 % for ix=1:length(out)
 %     trainData{i}=
