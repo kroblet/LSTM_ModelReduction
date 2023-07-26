@@ -1,7 +1,10 @@
 function data = trainningDataConv(out, sampleStep)
 %TRAINNINGDATACONV takes as input the Simulink.SimulationOutputs and
 %returns a dictionary with the trainning inputs and outputs
+
 caseNum = length(out);
+data={};
+
 for ix =1:caseNum
     time = out(ix).tout;
     refTorq = out(ix).simlog.Motor_Drive.Tr.series.values; % reference torque input in the motor
@@ -14,9 +17,9 @@ for ix =1:caseNum
     outTorque_res = interp1(time, outTorque, resTime);
     outVelocity_res = interp1(time, outVelocity, resTime);
 
+    data{ix} = [refTorq_res;outTorque_res;outVelocity_res];
+
 end
-
-
 
 end
 
