@@ -1,6 +1,8 @@
-%% Generate simulation inputs
+%% Initialization
+proj = matlab.project.rootProject; % project root
 modelName = 'simpleModel';
-
+trainDir = fullfile(proj.RootFolder, 'simplified_LSTMRedcuction', 'TrainInput');
+%% Generate simulation inputs
 trainTqs = [0.2:0.1:1.5];
 nameList = {};
 
@@ -8,7 +10,7 @@ numCases = length(trainTqs);
 
 for ix=1:numCases
     nameList{ix} = append('tqInp_',num2str(ix));
-    generateDatasetTq(trainTqs(ix), nameList{ix})
+    generateDatasetTq(trainTqs(ix), nameList{ix}, trainDir)
     simIn(ix) = Simulink.SimulationInput(modelName);
 
     dataFile = [nameList{ix} '.mat'];
