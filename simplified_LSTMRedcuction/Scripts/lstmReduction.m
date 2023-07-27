@@ -29,7 +29,7 @@ end
 %% Generate Simulation Inputs
 for ix=1:length(fileList)
     simIn(ix) = Simulink.SimulationInput(modelName);
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Signal Editor'], 'Filename', fileList(ix));
+    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Signal Editor'], 'Filename', fileList{ix});
     simIn(ix) = simIn(ix).setModelParameter('StopTime', num2str(simStopTime));    
 end
 
@@ -48,8 +48,8 @@ layers = [
     sequenceInputLayer(3,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
-    % lstmLayer(200)
     lstmLayer(200)
+    % lstmLayer(200)
     reluLayer
     fullyConnectedLayer(2)
     regressionLayer];
@@ -92,6 +92,6 @@ for n = 1:numel(dataTest)
 end
 
 results = predict(net,XTest,SequencePaddingDirection="left");
-
+save('lstmNet', 'net')
 %% Inspect NN response
 inspectPredData(results)

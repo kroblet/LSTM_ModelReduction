@@ -26,5 +26,23 @@ function generateDatasetTq(maxT, name, trainDir)
     fileName = fullfile(trainDir, [name '_negStep' '.mat']);
     save(fileName, "sdata")
 
+    % Zero input
+    time = [0 0 0 0 0];
+    torque = [0 0 0 0 0]; 
+    sdata = Simulink.SimulationData.Dataset(torque');
+    sdata{1}.Values.Time = time';
+    sdata{1}.Name = name;
+    fileName = fullfile(trainDir, [name '_zero' '.mat']);
+    save(fileName, "sdata")    
     
+    % Const input
+    time = [0 0 0 0 0];
+    torque = [maxT maxT maxT maxT maxT]; 
+    sdata = Simulink.SimulationData.Dataset(torque');
+    sdata{1}.Values.Time = time';
+    sdata{1}.Name = name;
+    fileName = fullfile(trainDir, [name '_zero' '.mat']);
+    save(fileName, "sdata")  
+
+
 end
