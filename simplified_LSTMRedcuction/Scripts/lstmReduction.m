@@ -6,11 +6,11 @@ simStopTime = 2; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Generate simulation scenarios
-trainTqs = [0.2:0.1:1.5];
+trainTqs = [0.2:0.1:1.2];
 nameList = {};
 numTqCases = length(trainTqs);
 
-for ix=1:numCases
+for ix=1:numTqCases
     nameList{ix} = append('tqInp_',num2str(ix));
     generateDatasetTq(trainTqs(ix), nameList{ix}, trainDir)
 end
