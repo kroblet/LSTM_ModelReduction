@@ -3,6 +3,7 @@ proj = matlab.project.rootProject; % project root
 trainDir = fullfile(proj.RootFolder, 'simplified_LSTMRedcuction', 'SimulationInput');
 modelName = 'simpleModel';
 simStopTime = 2; % Simulation stop time in s
+train = false; % enable oor disable trainning procedure
 
 %% Generate simulation inputs
 trainTqs = [0.2:0.1:1.5];
@@ -66,8 +67,9 @@ options = trainingOptions("adam", ...
     Verbose=0, ...
     Plots="training-progress");
 
+if train
 net = trainNetwork(XTrain,TTrain,layers,options);
-
+end
 %% Test LSTM Network
 for n = 1:numel(dataTest)
     X = dataTest{n};
