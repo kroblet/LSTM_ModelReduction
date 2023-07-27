@@ -3,7 +3,7 @@ proj = matlab.project.rootProject; % project root
 trainDir = fullfile(proj.RootFolder, 'simplified_LSTMRedcuction', 'SimulationInput');
 modelName = 'simpleModel';
 simStopTime = 2; % Simulation stop time in s
-train = false; % enable or disable network trainning
+train = true; % enable or disable network trainning
 
 %% Generate simulation scenarios
 trainTqs = [0.2:0.1:1.5];
@@ -15,14 +15,21 @@ for ix=1:numCases
     generateDatasetTq(trainTqs(ix), nameList{ix}, trainDir)
 end
 
-
+% filelist of trainning MAT files
+aux = dir(trainDir); 
+fileList={};
+ik = 1;
+for ix=1:length(aux)
+    if contains(aux(ix).name, '.mat')
+        fileList{ik} = aux(ix).name;
+        ik = ik+1;
+    end
+end
 
 %% Generate Simulation Inputs
-for ix=1:
+for ix=1:length(fileList)
     simIn(ix) = Simulink.SimulationInput(modelName);
-
-    dataFile = [nameList{ix} '.mat'];
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Signal Editor'], 'Filename', dataFile);
+    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Signal Editor'], 'Filename', fileList(ix));
     simIn(ix) = simIn(ix).setModelParameter('StopTime', num2str(simStopTime));    
 end
 
