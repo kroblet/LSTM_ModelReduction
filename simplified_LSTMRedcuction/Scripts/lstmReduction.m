@@ -2,7 +2,7 @@
 proj = matlab.project.rootProject; % project root
 trainDir = fullfile(proj.RootFolder, 'simplified_LSTMRedcuction', 'SimulationInput');
 modelName = 'simpleModel';
-simStopTime = 2; % Simulation stop time in s
+simStopTime = 5; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Generate simulation scenarios
@@ -12,7 +12,7 @@ numTqCases = length(trainTqs);
 
 for ix=1:numTqCases
     nameList{ix} = append('tqInp_',num2str(ix));
-    generateDatasetTq(trainTqs(ix), nameList{ix}, trainDir)
+    generateDatasetTq(trainTqs(ix), nameList{ix}, trainDir, simStopTime)
 end
 
 % filelist of trainning MAT files
@@ -48,7 +48,7 @@ layers = [
     sequenceInputLayer(3,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
-    lstmLayer(200)
+    lstmLayer(120)
     % lstmLayer(200)
     reluLayer
     fullyConnectedLayer(2)
@@ -70,6 +70,13 @@ for n = 1:numel(dataTrain)
     TTrain{n} = X(2:3,2:end);
 end
 
+%% Test LSTM Network
+for n = 1:numel(dataTest)
+    X = dataTest{n};
+    XTest{n} = X(:,1:end-1);
+    TTest{n} = X(2:3,2:end);
+end
+
 %% Train LSTM Network
 options = trainingOptions("adam", ...
     MaxEpochs=10000, ...
@@ -79,17 +86,14 @@ options = trainingOptions("adam", ...
     LearnRateDropPeriod=1e4, ...
     LearnRateDropFactor=0.6, ...
     Verbose=0, ...
-    Plots="training-progress");
+    Plots="training-progress",...
+    ValidationData={XTest,TTest});
 
 if train
-net = trainNetwork(XTrain,TTrain,layers,options);
+    net = trainNetwork(XTrain,TTrain,layers,options);
 end
-%% Test LSTM Network
-for n = 1:numel(dataTest)
-    X = dataTest{n};
-    XTest{n} = X(:,1:end-1);
-    TTest{n} = X(2:3,2:end);
-end
+
+%% Check response
 
 results = predict(net,XTest,SequencePaddingDirection="left");
 save('lstmNet', 'net')
