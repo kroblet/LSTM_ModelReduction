@@ -1,8 +1,8 @@
 %% Initialization
 proj = matlab.project.rootProject; % project root
-trainDir = fullfile(proj.RootFolder, 'simplified_LSTMRedcuction', 'SimulationInput');
+trainDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
 modelName = 'simpleModel';
-simStopTime = 5; % Simulation stop time in s
+simStopTime = 1000; % Simulation stop time in s
 train = false; % enable or disable network trainning
 
 %% Generate simulation scenarios
