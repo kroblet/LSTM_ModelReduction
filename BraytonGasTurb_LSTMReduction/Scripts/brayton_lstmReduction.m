@@ -1,35 +1,21 @@
 %% Initialization
 proj = matlab.project.rootProject; % project root
-trainDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
-modelName = 'simpleModel';
+scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
+modelName = 'brayton_cycle_lstm';
 simStopTime = 1000; % Simulation stop time in s
 train = false; % enable or disable network trainning
 
-%% Generate simulation scenarios
-trainTqs = [0.2:0.1:1.2];
-nameList = {};
-numTqCases = length(trainTqs);
+%% Generate Simulation Scenarios
+shaftSpeedStates = [4e3:1e3:1.2e4];
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates, simStopTime)
 
-for ix=1:numTqCases
-    nameList{ix} = append('tqInp_',num2str(ix));
-    generateDatasetTq(trainTqs(ix), nameList{ix}, trainDir, simStopTime)
-end
+%% Generate Simulink Simulation Inputs
+fileList = listSimInpFiles(scenarioDir);
+numCases = length(fileList);
 
-% filelist of trainning MAT files
-aux = dir(trainDir); 
-fileList={};
-ik = 1;
-for ix=1:length(aux)
-    if contains(aux(ix).name, '.mat')
-        fileList{ik} = aux(ix).name;
-        ik = ik+1;
-    end
-end
-
-%% Generate Simulation Inputs
-for ix=1:length(fileList)
+for ix=1:numCases
     simIn(ix) = Simulink.SimulationInput(modelName);
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Signal Editor'], 'Filename', fileList{ix});
+    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/System Inputs/Varied Shaft Speed','/Signal Editor'], 'Filename', fileList{ix});
     simIn(ix) = simIn(ix).setModelParameter('StopTime', num2str(simStopTime));    
 end
 
