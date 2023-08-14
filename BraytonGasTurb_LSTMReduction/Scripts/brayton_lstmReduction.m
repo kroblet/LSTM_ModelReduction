@@ -24,24 +24,24 @@ out = parsim(simIn);
 
 %% Configure trainning data format
 resampleTimeStep = 0.01;
-trainData = trainningDataConv(out,resampleTimeStep);
+trainData = prepareTrainingData(out,resampleTimeStep);
 
-%% Inspect resampled data
-inspectTrainData(trainData)
+% %% Inspect resampled data
+% inspectTrainData(trainData)
 
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(3,Normalization="rescale-zero-one")
+    sequenceInputLayer(16,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(120)
     % lstmLayer(200)
     reluLayer
-    fullyConnectedLayer(2)
+    fullyConnectedLayer(16)
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.8; % the percentage of the data that they will be used for training
+trainPercentage = 1; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);

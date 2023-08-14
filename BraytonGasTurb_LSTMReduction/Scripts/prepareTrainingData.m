@@ -7,12 +7,13 @@ data={};
 
 for ix =1:caseNum
     time = out(ix).tout;
+    compRPM = out(ix).logsout{1}.Values.Data;
     apu_w = ones(length(time), 1)*out(ix).logsout{2}.Values.Data;
     phi = out(ix).logsout{3}.Values.Data;
     vn = out(ix).logsout{4}.Values.Data;
-    vn_apu = ones(length(time), 1)*out(ix).logsout{7}.Values.Data;
-    compRPM = out(ix).logsout{1}.Values.Data;
     power = out(ix).logsout{5}.Values.Data;
+    surgeMargin = out(ix).logsout{6}.Values.Data;
+    vn_apu = ones(length(time), 1)*out(ix).logsout{8}.Values.Data;
 
     % temperature/ pressure at thermodynamic stage 1 - Compressor input
     t1 = out(ix).simlog_sscfluids_brayton_cycle.Ts_1.Pressure_Temperature_Sensor_G.T.series.values;
@@ -42,6 +43,7 @@ for ix =1:caseNum
     vn_apu_res = interp1(time, vn_apu, resTime);
     compRPM_res = interp1(time, compRPM, resTime);
     power_res = interp1(time, power, resTime);
+    surgeMargin_res = interp1(time, surgeMargin, resTime);
 
     % resample physical signals
     t1_res = interp1(time, t1, resTime);
@@ -56,9 +58,14 @@ for ix =1:caseNum
     p4_res = interp1(time, p4, resTime);
     p5_res = interp1(time, p5, resTime);    
 
-    data{ix} = [apu_w_res;phi_res;vn_res;vn_apu_res;compRPM_res;power_res;...
-        t1_res;t2_res;t3_res;t4_res;t5_res;...
-        p1_res;p2_res;p3_res;p4_res;p5_res];
+    % data{ix} = [apu_w_res;phi_res;vn_res;vn_apu_res;compRPM_res;power_res;surgeMargin_res...
+    %     t1_res;t2_res;t3_res;t4_res;t5_res;...
+    %     p1_res;p2_res;p3_res;p4_res;p5_res];
+
+    % trainning data without power
+    data{ix} = [apu_w_res;phi_res;vn_res;vn_apu_res;compRPM_res;surgeMargin_res;...
+    t1_res;t2_res;t3_res;t4_res;t5_res;...
+    p1_res;p2_res;p3_res;p4_res;p5_res];
 
 end
 end
