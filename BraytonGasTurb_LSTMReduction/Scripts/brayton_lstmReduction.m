@@ -9,6 +9,7 @@ train = false; % enable or disable network trainning
 shaftSpeedStates = [4e3:1e3:1.2e4];
 generateShaftSpeedInputs(scenarioDir, shaftSpeedStates, simStopTime)
 
+
 %% Generate Simulink Simulation Inputs
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
@@ -23,7 +24,7 @@ end
 out = parsim(simIn);
 
 %% Configure trainning data format
-resampleTimeStep = 0.01;
+resampleTimeStep = 1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 % %% Inspect resampled data
@@ -34,10 +35,10 @@ layers = [
     sequenceInputLayer(16,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
-    lstmLayer(120)
+    lstmLayer(200)
     % lstmLayer(200)
     reluLayer
-    fullyConnectedLayer(16)
+    fullyConnectedLayer(11)
     regressionLayer];
 
 %% Partition trainning data
@@ -53,14 +54,14 @@ TTrain = {};
 for n = 1:numel(dataTrain)
     X = dataTrain{n};
     XTrain{n} = X(:,1:end-1);
-    TTrain{n} = X(2:3,2:end);
+    TTrain{n} = X(6:end,2:end);
 end
 
 %% Test LSTM Network
 for n = 1:numel(dataTest)
     X = dataTest{n};
     XTest{n} = X(:,1:end-1);
-    TTest{n} = X(2:3,2:end);
+    TTest{n} = X(6:end,2:end);
 end
 
 %% Train LSTM Network
