@@ -6,8 +6,15 @@ simStopTime = 1000; % Simulation stop time in s
 train = false; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-shaftSpeedStates = [4e3:1e3:1.2e4];
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates, simStopTime)
+shaftSpeedStates1 = [4e3:1e3:1.1e4];
+shaftSpeedStates2 = [4.5e3:0.5e3:1.1e4];
+shaftSpeedStates3 = [3.8e3:0.5e3:1.1e4];
+shaftSpeedStates4 = [3.85e3:2e3:1.1e4];
+
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, simStopTime, 'stairOnly');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates2, simStopTime, 'stairOnly');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates3, simStopTime, 'stairOnly');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates4, simStopTime, 'stairOnly');
 
 
 %% Generate Simulink Simulation Inputs
@@ -24,7 +31,7 @@ end
 out = parsim(simIn);
 
 %% Configure trainning data format
-resampleTimeStep = 1;
+resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 % %% Inspect resampled data
@@ -32,17 +39,17 @@ trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(16,Normalization="rescale-zero-one")
+    sequenceInputLayer(6,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
     % lstmLayer(200)
     reluLayer
-    fullyConnectedLayer(11)
+    fullyConnectedLayer(2)
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 1; % the percentage of the data that they will be used for training
+trainPercentage = 0.9; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -54,14 +61,14 @@ TTrain = {};
 for n = 1:numel(dataTrain)
     X = dataTrain{n};
     XTrain{n} = X(:,1:end-1);
-    TTrain{n} = X(6:end,2:end);
+    TTrain{n} = X(5:end,2:end);
 end
 
 %% Test LSTM Network
 for n = 1:numel(dataTest)
     X = dataTest{n};
     XTest{n} = X(:,1:end-1);
-    TTest{n} = X(6:end,2:end);
+    TTest{n} = X(5:end,2:end);
 end
 
 %% Train LSTM Network
