@@ -2,7 +2,7 @@
 proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
 modelName = 'brayton_cycle_lstm';
-simStopTime = 1000; % Simulation stop time in s
+simStopTime = 800; % Simulation stop time in s
 train = false; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
@@ -90,6 +90,6 @@ end
 %% Check response
 
 results = predict(net,XTest,SequencePaddingDirection="left");
-save('lstmNet', 'net')
+save('braytonLSTMNet', 'net')
 %% Inspect NN response
 inspectPredData(results)
