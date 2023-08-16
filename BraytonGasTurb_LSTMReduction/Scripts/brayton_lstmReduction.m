@@ -10,7 +10,7 @@ shaftSpeedStates1 = [4e3:1e3:1.1e4];
 shaftSpeedStates2 = [4e3:0.5e3:6.2e3];
 shaftSpeedStates3 = [3.8e3:0.5e3:7.1e3];
 shaftSpeedStates4 = [7e3:0.5e3:1.1e4];
-shaftSpeedStates5 = [4.1:1e3:11.1e3];
+shaftSpeedStates5 = [4.1e3:1e3:11.1e3];
 
 generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, 1000, 'stairOnly');
 generateShaftSpeedInputs(scenarioDir, shaftSpeedStates2, simStopTime, 'all');
@@ -47,7 +47,8 @@ resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-inspectTrainData(trainData)
+signalNames = {'APU_w', 'Phi','VN', 'VN_APU', 'SM', 'T3', 'N'};
+visualizeTrainData(trainData,signalNames )
 
 %% LSTM Architecture
 layers = [
