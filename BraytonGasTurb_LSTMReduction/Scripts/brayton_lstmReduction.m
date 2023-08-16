@@ -11,8 +11,8 @@ shaftSpeedStates2 = [4.5e3:0.5e3:1.1e4];
 shaftSpeedStates3 = [3.8e3:0.5e3:1.1e4];
 shaftSpeedStates4 = [3.85e3:2e3:1.1e4];
 
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, simStopTime, 'stairOnly');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates2, simStopTime, 'stairOnly');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, simStopTime, 'all');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates2, simStopTime, 'all');
 generateShaftSpeedInputs(scenarioDir, shaftSpeedStates3, simStopTime, 'stairOnly');
 generateShaftSpeedInputs(scenarioDir, shaftSpeedStates4, simStopTime, 'stairOnly');
 
@@ -34,18 +34,19 @@ out = parsim(simIn);
 resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
-% %% Inspect resampled data
+%% Inspect resampled data
 % inspectTrainData(trainData)
 
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(6,Normalization="rescale-zero-one")
+    sequenceInputLayer(7,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
     % lstmLayer(200)
     reluLayer
-    fullyConnectedLayer(2)
+    dropoutLayer
+    fullyConnectedLayer(3)
     regressionLayer];
 
 %% Partition trainning data
@@ -75,9 +76,9 @@ end
 options = trainingOptions("adam", ...
     MaxEpochs=10000, ...
     GradientThreshold=1, ...
-    InitialLearnRate=5e-3, ...
+    InitialLearnRate=1e-1, ...
     LearnRateSchedule="piecewise", ...
-    LearnRateDropPeriod=1e4, ...
+    LearnRateDropPeriod=1000, ...
     LearnRateDropFactor=0.6, ...
     Verbose=0, ...
     Plots="training-progress",...

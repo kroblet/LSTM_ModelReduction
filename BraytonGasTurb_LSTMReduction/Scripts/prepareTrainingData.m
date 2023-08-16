@@ -71,7 +71,7 @@ for ix =1:caseNum
 
     % minimum data
     data{ix} = [apu_w_res;phi_res;vn_res;vn_apu_res;surgeMargin_res;...
-                t3_res];
+                t3_res;compRPM_res];
 end
 end
 
