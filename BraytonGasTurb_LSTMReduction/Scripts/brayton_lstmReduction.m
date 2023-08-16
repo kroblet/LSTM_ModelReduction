@@ -2,25 +2,26 @@
 proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
 modelName = 'brayton_cycle_lstm';
-simStopTime = 800; % Simulation stop time in s
+simStopTime = 300; % Simulation stop time in s
 train = false; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates1 = [4e3:1e3:1.1e4];
-shaftSpeedStates2 = [4.5e3:0.5e3:1.1e4];
-shaftSpeedStates3 = [3.8e3:0.5e3:1.1e4];
-shaftSpeedStates4 = [3.85e3:2e3:1.1e4];
+shaftSpeedStates2 = [4e3:0.5e3:6.2e3];
+shaftSpeedStates3 = [3.8e3:0.5e3:7.1e3];
+shaftSpeedStates4 = [7e3:0.5e3:1.1e4];
+shaftSpeedStates5 = [4.1:1e3:11.1e3];
 
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, simStopTime, 'all');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, 1000, 'stairOnly');
 generateShaftSpeedInputs(scenarioDir, shaftSpeedStates2, simStopTime, 'all');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates3, simStopTime, 'stairOnly');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates4, simStopTime, 'stairOnly');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates3, simStopTime, 'all');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates4, simStopTime, 'all');
+generateShaftSpeedInputs(scenarioDir, shaftSpeedStates5, 1000, 'stairOnly');
 
 
 %% Generate Simulink Simulation Inputs
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
-
 for ix=1:numCases
     simIn(ix) = Simulink.SimulationInput(modelName);
     simIn(ix) = simIn(ix).setBlockParameter([modelName,'/System Inputs/Varied Shaft Speed','/Signal Editor'], 'Filename', fileList{ix});
@@ -30,12 +31,23 @@ end
 %% Simulate
 out = parsim(simIn);
 
+%% Clean simulation outputs
+idx = 1;
+aux = length(out);
+while idx <= aux
+    if ~isempty(out(ix).ErrorMessage)
+        out(idx) = [];
+    end
+    idx=idx+1;
+    aux = length(out);
+end
+
 %% Configure trainning data format
 resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-% inspectTrainData(trainData)
+inspectTrainData(trainData)
 
 %% LSTM Architecture
 layers = [
@@ -76,10 +88,11 @@ end
 options = trainingOptions("adam", ...
     MaxEpochs=10000, ...
     GradientThreshold=1, ...
-    InitialLearnRate=1e-1, ...
+    InitialLearnRate=5e-2, ...
     LearnRateSchedule="piecewise", ...
-    LearnRateDropPeriod=1000, ...
-    LearnRateDropFactor=0.6, ...
+    LearnRateDropPeriod=1e4, ...
+    LearnRateDropFactor=0.5, ...
+    L2Regularization = 0.0001, ...
     Verbose=0, ...
     Plots="training-progress",...
     ValidationData={XTest,TTest});
