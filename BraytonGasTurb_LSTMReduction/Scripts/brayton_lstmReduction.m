@@ -2,21 +2,23 @@
 proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
 modelName = 'brayton_cycle_lstm';
-simStopTime = 300; % Simulation stop time in s
+simStopTimeShort = 300; % Simulation stop time in s
+simStopTimeLong = 1000; % Simulation stop time in s
+
 train = false; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-shaftSpeedStates1 = [4e3:1e3:1.1e4];
-shaftSpeedStates2 = [4e3:0.5e3:6.2e3];
-shaftSpeedStates3 = [3.8e3:0.5e3:7.1e3];
-shaftSpeedStates4 = [7e3:0.5e3:1.1e4];
-shaftSpeedStates5 = [4.1e3:1e3:11.1e3];
+shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
+                    {[4e3:0.5e3:6.2e3],simStopTimeShort},
+                    {[3.8e3:0.5e3:7.1e3], simStopTimeShort},
+                    {[7e3:0.5e3:1.1e4], simStopTimeShort},
+                    {[4.1e3:1e3:11.1e3], simStopTimeLong}};
 
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates1, 1000, 'stairOnly');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates2, simStopTime, 'all');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates3, simStopTime, 'all');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates4, simStopTime, 'all');
-generateShaftSpeedInputs(scenarioDir, shaftSpeedStates5, 1000, 'stairOnly');
+for ix=1:numel(shaftSpeedStates)
+    generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{1}{1},...
+    shaftSpeedStates{1}{2}, 'stairOnly')
+end
+
 
 
 %% Generate Simulink Simulation Inputs
@@ -26,7 +28,13 @@ numCases = length(fileList);
 for ix=1:numCases
     simIn(ix) = Simulink.SimulationInput(modelName);
     simIn(ix) = simIn(ix).setBlockParameter([modelName,'/System Inputs/Varied Shaft Speed','/Signal Editor'], 'Filename', fileList{ix});
-    simIn(ix) = simIn(ix).setModelParameter('StopTime', num2str(simStopTime));    
+    simIn(ix) = simIn(ix).setModelParameter('StopTime', num2str(simStopTime));
+    % Initialize compressor's RPM with respect to the Simulation scenarios
+    fileName = split(fileList{ix},'.');
+    aux = split(fileName{1},'_');
+    rpm0 = aux{2};
+    simIn(ix) = simIn(ix).setVariable('rpm0', str2num(rpm0), ...
+        'Workspace', modelName);  
 end
 
 %% Simulate
@@ -45,7 +53,7 @@ while idx <= aux
 end
 
 %% Configure trainning data format
-resampleTimeStep = 0.1;
+resampleTimeStep = 0.02;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
@@ -54,18 +62,18 @@ visualizeTrainData(trainData(:),signalNames )
 
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(6,Normalization="rescale-zero-one")
+    sequenceInputLayer(7,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
-    % lstmLayer(200)
+    lstmLayer(100)
     reluLayer
     dropoutLayer
-    fullyConnectedLayer(2)
+    fullyConnectedLayer(3)
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.7; % the percentage of the data that they will be used for training
+trainPercentage = 0.8; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -78,9 +86,9 @@ trainPercentage = 0.7; % the percentage of the data that they will be used for t
 options = trainingOptions("adam", ...
     MaxEpochs=10000, ...
     GradientThreshold=1, ...
-    InitialLearnRate=5e-2, ...
+    InitialLearnRate=0.5e-1, ...
     LearnRateSchedule="piecewise", ...
-    LearnRateDropPeriod=1e4, ...
+    LearnRateDropPeriod=1.5e3, ...
     LearnRateDropFactor=0.5, ...
     L2Regularization = 0.0001, ...
     Verbose=0, ...
@@ -94,6 +102,7 @@ end
 %% Check response
 
 results = predict(net,XTest,SequencePaddingDirection="left");
+inspectPredData(results)
 save('braytonLSTMNetThermo', 'net')
 %% Inspect NN response
 inspectPredData(results)
@@ -101,4 +110,37 @@ inspectPredData(results)
 
 
 %% Train LSTM Network for mechanical part
+
+trainDataMech = prepareTrainingData(out,resampleTimeStep);
+[dataTrainMech, dataTestMech] = trainPartitioning(trainDataMech, trainPercentage);
+
+[XTrainMech, TTrainMech] = preprocessTrainData(dataTrainMech, 7);
+[XTest, TTest] = preprocessTrainData(dataTestMech, 7);
+
+% layers
+layersMech = [
+    sequenceInputLayer(7,Normalization="rescale-zero-one")
+    fullyConnectedLayer(200)
+    reluLayer
+    lstmLayer(200)
+    % lstmLayer(200)
+    reluLayer
+    dropoutLayer
+    fullyConnectedLayer(1)
+    regressionLayer];
+
+% layers
+options = trainingOptions("adam", ...
+    MaxEpochs=10000, ...
+    GradientThreshold=1, ...
+    InitialLearnRate=5e-3, ...
+    LearnRateSchedule="piecewise", ...
+    LearnRateDropPeriod=1e4, ...
+    LearnRateDropFactor=0.5, ...
+    L2Regularization = 0.0001, ...
+    Verbose=0, ...
+    Plots="training-progress",...
+    ValidationData={XTest,TTest});
+
+netMech = trainNetwork(XTrainMech,TTrainMech,layersMech,options);
 
