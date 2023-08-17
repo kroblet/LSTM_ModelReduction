@@ -20,6 +20,7 @@ generateShaftSpeedInputs(scenarioDir, shaftSpeedStates5, 1000, 'stairOnly');
 
 
 %% Generate Simulink Simulation Inputs
+clearvars simIn
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
 for ix=1:numCases
@@ -35,10 +36,11 @@ out = parsim(simIn);
 idx = 1;
 aux = length(out);
 while idx <= aux
-    if ~isempty(out(ix).ErrorMessage)
+    if ~isempty(out(idx).ErrorMessage)
         out(idx) = [];
+    else
+        idx=idx+1;
     end
-    idx=idx+1;
     aux = length(out);
 end
 
@@ -48,42 +50,29 @@ trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
 signalNames = {'APU_w', 'Phi','VN', 'VN_APU', 'SM', 'T3', 'N'};
-visualizeTrainData(trainData,signalNames )
+visualizeTrainData(trainData(:),signalNames )
 
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(7,Normalization="rescale-zero-one")
+    sequenceInputLayer(6,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
     % lstmLayer(200)
     reluLayer
     dropoutLayer
-    fullyConnectedLayer(3)
+    fullyConnectedLayer(2)
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.9; % the percentage of the data that they will be used for training
+trainPercentage = 0.7; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
 
 %% Preprocess
-XTrain = {};
-TTrain = {};
-
-for n = 1:numel(dataTrain)
-    X = dataTrain{n};
-    XTrain{n} = X(:,1:end-1);
-    TTrain{n} = X(5:end,2:end);
-end
-
-%% Test LSTM Network
-for n = 1:numel(dataTest)
-    X = dataTest{n};
-    XTest{n} = X(:,1:end-1);
-    TTest{n} = X(5:end,2:end);
-end
+[XTrain, TTrain] = preprocessTrainData(dataTrain, 5);
+[XTest, TTest] = preprocessTrainData(dataTest, 5);
 
 %% Train LSTM Network
 options = trainingOptions("adam", ...
@@ -105,6 +94,11 @@ end
 %% Check response
 
 results = predict(net,XTest,SequencePaddingDirection="left");
-save('braytonLSTMNet', 'net')
+save('braytonLSTMNetThermo', 'net')
 %% Inspect NN response
 inspectPredData(results)
+
+
+
+%% Train LSTM Network for mechanical part
+
