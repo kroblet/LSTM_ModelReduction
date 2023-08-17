@@ -15,8 +15,8 @@ shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
                     {[4.1e3:1e3:11.1e3], simStopTimeLong}};
 
 for ix=1:numel(shaftSpeedStates)
-    generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{1}{1},...
-    shaftSpeedStates{1}{2}, 'stairOnly')
+    generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
+    shaftSpeedStates{ix}{2}, 'all')
 end
 
 
@@ -26,12 +26,14 @@ clearvars simIn
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
 for ix=1:numCases
-    simIn(ix) = Simulink.SimulationInput(modelName);
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/System Inputs/Varied Shaft Speed','/Signal Editor'], 'Filename', fileList{ix});
-    simIn(ix) = simIn(ix).setModelParameter('StopTime', num2str(simStopTime));
-    % Initialize compressor's RPM with respect to the Simulation scenarios
     fileName = split(fileList{ix},'.');
     aux = split(fileName{1},'_');
+    simStopTime = aux{end};
+    simIn(ix) = Simulink.SimulationInput(modelName);
+    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/System Inputs/Varied Shaft Speed','/Signal Editor'], 'Filename', fileList{ix});
+    simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
+    % Initialize compressor's RPM with respect to the Simulation scenarios
+
     rpm0 = aux{2};
     simIn(ix) = simIn(ix).setVariable('rpm0', str2num(rpm0), ...
         'Workspace', modelName);  
@@ -53,7 +55,7 @@ while idx <= aux
 end
 
 %% Configure trainning data format
-resampleTimeStep = 0.02;
+resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
@@ -66,7 +68,7 @@ layers = [
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
-    lstmLayer(100)
+    % lstmLayer(100)
     reluLayer
     dropoutLayer
     fullyConnectedLayer(3)
@@ -106,8 +108,6 @@ inspectPredData(results)
 save('braytonLSTMNetThermo', 'net')
 %% Inspect NN response
 inspectPredData(results)
-
-
 
 %% Train LSTM Network for mechanical part
 
