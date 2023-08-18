@@ -64,7 +64,7 @@ visualizeTrainData(trainData(:),signalNames )
 
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(7,Normalization="rescale-zero-one")
+    sequenceInputLayer(5,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
@@ -81,13 +81,14 @@ trainPercentage = 0.8; % the percentage of the data that they will be used for t
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
 
 %% Preprocess
-[XTrain, TTrain] = preprocessTrainData(dataTrain, 5);
-[XTest, TTest] = preprocessTrainData(dataTest, 5);
+[XTrain, TTrain] = preprocessTrainData(dataTrain, 3);
+[XTest, TTest] = preprocessTrainData(dataTest, 3);
 
 %% Train LSTM Network
-options = trainingOptions("adam", ...
+options = trainingOptions("sgdm", ...
     MaxEpochs=10000, ...
     GradientThreshold=1, ...
+    MiniBatchSize=64, ...
     InitialLearnRate=0.5e-1, ...
     LearnRateSchedule="piecewise", ...
     LearnRateDropPeriod=1.5e3, ...
