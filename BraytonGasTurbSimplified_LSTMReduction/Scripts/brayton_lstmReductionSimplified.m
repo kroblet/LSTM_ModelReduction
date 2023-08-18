@@ -1,7 +1,7 @@
 %% Initialization
 proj = matlab.project.rootProject; % project root
-scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurb_LSTMReduction', 'SimulationInput');
-modelName = 'brayton_cycle_lstm';
+scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationInput');
+modelName = 'brayton_cycle_lstm_simplified';
 simStopTimeShort = 300; % Simulation stop time in s
 simStopTimeLong = 1000; % Simulation stop time in s
 
@@ -9,33 +9,36 @@ train = false; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
-                    {[4e3:0.5e3:6.2e3],simStopTimeShort},
-                    {[3.8e3:0.5e3:7.1e3], simStopTimeShort},
-                    {[7e3:0.5e3:1.1e4], simStopTimeShort},
-                    {[4.1e3:1e3:11.1e3], simStopTimeLong}};
+                    {[4.2e3:1e3:1.2e4],simStopTimeLong},
+                    {[4.5e3:1e3:1.5e4], simStopTimeLong},
+                    {[4.8e3:2e3:1.5e4], simStopTimeLong}};
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
-    shaftSpeedStates{ix}{2}, 'all')
+    shaftSpeedStates{ix}{2}, 'staironly')
 end
-
-
 
 %% Generate Simulink Simulation Inputs
 clearvars simIn
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
+scenario = {};
 for ix=1:numCases
     fileName = split(fileList{ix},'.');
+    scenario{ix} = load(fileList{ix});
     aux = split(fileName{1},'_');
     simStopTime = aux{end};
     simIn(ix) = Simulink.SimulationInput(modelName);
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/System Inputs/Varied Shaft Speed','/Signal Editor'], 'Filename', fileList{ix});
+
     simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
     % Initialize compressor's RPM with respect to the Simulation scenarios
 
     rpm0 = aux{2};
-    simIn(ix) = simIn(ix).setVariable('rpm0', str2num(rpm0), ...
+    simIn(ix) = setVariable(simIn(ix), 'rpm0', str2num(rpm0), ...
+        'Workspace', modelName);  
+    simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
+        'Workspace', modelName);  
+    simIn(ix) = setVariable(simIn(ix),'time_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
         'Workspace', modelName);  
 end
 
@@ -110,38 +113,4 @@ save('braytonLSTMNetThermo', 'net')
 %% Inspect NN response
 inspectPredData(results)
 
-%% Train LSTM Network for mechanical part
-
-trainDataMech = prepareTrainingData(out,resampleTimeStep);
-[dataTrainMech, dataTestMech] = trainPartitioning(trainDataMech, trainPercentage);
-
-[XTrainMech, TTrainMech] = preprocessTrainData(dataTrainMech, 7);
-[XTest, TTest] = preprocessTrainData(dataTestMech, 7);
-
-% layers
-layersMech = [
-    sequenceInputLayer(7,Normalization="rescale-zero-one")
-    fullyConnectedLayer(200)
-    reluLayer
-    lstmLayer(200)
-    % lstmLayer(200)
-    reluLayer
-    dropoutLayer
-    fullyConnectedLayer(1)
-    regressionLayer];
-
-% layers
-options = trainingOptions("adam", ...
-    MaxEpochs=10000, ...
-    GradientThreshold=1, ...
-    InitialLearnRate=5e-3, ...
-    LearnRateSchedule="piecewise", ...
-    LearnRateDropPeriod=1e4, ...
-    LearnRateDropFactor=0.5, ...
-    L2Regularization = 0.0001, ...
-    Verbose=0, ...
-    Plots="training-progress",...
-    ValidationData={XTest,TTest});
-
-netMech = trainNetwork(XTrainMech,TTrainMech,layersMech,options);
 

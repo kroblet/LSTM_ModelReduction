@@ -2,7 +2,9 @@ function generateShaftSpeedInputs(scenarioDir,shaftSpeedStates, simStopTime, mod
 %GENERATESHAFTINPUTS Summary of this function goes here
 %   Detailed explanation goes here
 shaftSpeeds = shaftSpeedVector(shaftSpeedStates);
-time = linspace(0,simStopTime,length(shaftSpeeds));
+stepTimes = linspace(0,simStopTime, length(shaftSpeedStates));
+timeStep = (stepTimes(2)-stepTimes(1));
+time = timeVector(stepTimes, 0.8*timeStep);
 
 if strcmp(mode,'all')
     % Constant Simulation Scenarios
