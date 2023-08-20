@@ -37,9 +37,11 @@ for ix=1:numCases
     simIn(ix) = setVariable(simIn(ix), 'rpm0', str2num(rpm0), ...
         'Workspace', modelName);  
     simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
-        'Workspace', modelName);  
+        'Workspace', modelName);
+    simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
+        'Workspace', modelName);    
     simIn(ix) = setVariable(simIn(ix),'time_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
-        'Workspace', modelName);  
+        'Workspace', modelName);
 end
 
 %% Simulate
@@ -65,16 +67,21 @@ trainData = prepareTrainingData(out,resampleTimeStep);
 signalNames = {'APU_w', 'Phi','VN', 'VN_APU', 'SM', 'T3', 'N'};
 visualizeTrainData(trainData(:),signalNames )
 
+%% Inputs outputs
+sigNumIn = 4;
+sigNumOut = 3;
+outStartIdx = 2;
+
 %% LSTM Architecture
 layers = [
-    sequenceInputLayer(5,Normalization="rescale-zero-one")
+    sequenceInputLayer(sigNumIn,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
     % lstmLayer(100)
     reluLayer
     dropoutLayer
-    fullyConnectedLayer(3)
+    fullyConnectedLayer(sigNumOut)
     regressionLayer];
 
 %% Partition trainning data
@@ -84,8 +91,8 @@ trainPercentage = 0.8; % the percentage of the data that they will be used for t
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
 
 %% Preprocess
-[XTrain, TTrain] = preprocessTrainData(dataTrain, 3);
-[XTest, TTest] = preprocessTrainData(dataTest, 3);
+[XTrain, TTrain] = preprocessTrainData(dataTrain, outStartIdx);
+[XTest, TTest] = preprocessTrainData(dataTest, outStartIdx);
 
 %% Train LSTM Network
 options = trainingOptions("sgdm", ...
