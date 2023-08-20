@@ -1,6 +1,7 @@
 %% Initialization
 proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationInput');
+simOutDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationOutput');
 modelName = 'brayton_cycle_lstm_simplified';
 simStopTimeShort = 300; % Simulation stop time in s
 simStopTimeLong = 1000; % Simulation stop time in s
@@ -46,6 +47,9 @@ end
 
 %% Simulate
 out = parsim(simIn);
+
+%% Save results
+save(fullfile(simOutDir,'simOuts'),'out') 
 
 %% Clean simulation outputs
 idx = 1;
