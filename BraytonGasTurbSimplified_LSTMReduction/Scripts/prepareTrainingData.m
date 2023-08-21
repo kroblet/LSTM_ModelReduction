@@ -56,7 +56,7 @@ for ix =1:caseNum
 
 
     % minimum data
-    data{ix} = [compRPM_res;phi_res; power_res; globEff_res];
+    data{ix} = [phi_res; compRPM_res; power_res; globEff_res];
 end
 end
 
