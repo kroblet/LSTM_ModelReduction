@@ -16,7 +16,7 @@ shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
-    shaftSpeedStates{ix}{2}, 'staironly')
+    shaftSpeedStates{ix}{2}, 'staironly', ix)
 end
 
 %% Generate Simulink Simulation Inputs
