@@ -12,6 +12,7 @@ for ix =1:caseNum
     power = out(ix).logsout{4}.Values.Data;
     surgeMargin = out(ix).logsout{3}.Values.Data;
     globEff = out(ix).logsout{5}.Values.Data;
+    RPMref = out(ix).logsout{6}.Values.Data;
 
     % temperature/ pressure at thermodynamic stage 1 - Compressor input
     % t1 = out(ix).simlog_sscfluids_brayton_cycle.Ts_1.Pressure_Temperature_Sensor_G.T.series.values;
@@ -40,6 +41,8 @@ for ix =1:caseNum
     compRPM_res = interp1(time, compRPM, resTime);
     power_res = interp1(time, power, resTime);
     surgeMargin_res = interp1(time, surgeMargin, resTime);
+    RPMref_res = interp1(time, RPMref, resTime);
+
 
     % resample physical signals
     % t1_res = interp1(time, t1, resTime);
@@ -56,7 +59,7 @@ for ix =1:caseNum
 
 
     % minimum data
-    data{ix} = [phi_res; compRPM_res; power_res; globEff_res];
+    data{ix} = [RPMref_res; phi_res; compRPM_res; power_res; globEff_res];
 end
 end
 

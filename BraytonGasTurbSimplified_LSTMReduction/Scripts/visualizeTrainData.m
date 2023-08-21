@@ -19,7 +19,8 @@ end
 
 % hold off axes
 for ix=1:signalNum
-    ylabel(signalNames{iy})
+    ylabel(ax{ix},signalNames{ix})
+    grid(ax{ix}, 'on')
     hold(ax{ix},'off')
 end
 

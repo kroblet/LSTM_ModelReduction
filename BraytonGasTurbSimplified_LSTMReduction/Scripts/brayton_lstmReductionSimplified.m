@@ -11,8 +11,8 @@ train = false; % enable or disable network trainning
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
                     {[4.2e3:1e3:1.2e4],simStopTimeLong},
-                    {[4.5e3:1e3:1.5e4], simStopTimeLong},
-                    {[4.8e3:2e3:1.5e4], simStopTimeLong}};
+                    {[4.5e3:1e3:1.2e4], simStopTimeLong},
+                    {[4.8e3:2e3:1.2e4], simStopTimeLong}};
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
@@ -68,12 +68,12 @@ resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-signalNames = {'Phi','N', 'power', 'eff'};
+signalNames = {'Nref','Phi','N', 'power', 'eff'};
 visualizeTrainData(trainData(:),signalNames )
 
 %% Inputs outputs
-sigNumIn = 4;
-sigNumOut = 3;
+sigNumIn = 5;
+sigNumOut = 4;
 outStartIdx = 2;
 
 %% LSTM Architecture
@@ -82,7 +82,7 @@ layers = [
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
-    lstmLayer(100)
+    % lstmLayer(100)
     reluLayer
     dropoutLayer
     fullyConnectedLayer(sigNumOut)
@@ -99,7 +99,7 @@ trainPercentage = 0.8; % the percentage of the data that they will be used for t
 [XTest, TTest] = preprocessTrainData(dataTest, outStartIdx);
 
 %% Train LSTM Network
-options = trainingOptions("sgdm", ...
+options = trainingOptions("adam", ...
     MaxEpochs=10000, ...
     GradientThreshold=1, ...
     MiniBatchSize=8, ...
