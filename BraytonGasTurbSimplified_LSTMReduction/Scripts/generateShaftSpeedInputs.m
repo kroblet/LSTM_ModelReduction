@@ -1,4 +1,4 @@
-function generateShaftSpeedInputs(scenarioDir,shaftSpeedStates, simStopTime, mode)
+function generateShaftSpeedInputs(scenarioDir,shaftSpeedStates, simStopTime, mode, idx)
 %GENERATESHAFTINPUTS Summary of this function goes here
 %   Detailed explanation goes here
 shaftSpeeds = shaftSpeedVector(shaftSpeedStates);
@@ -13,10 +13,10 @@ if strcmp(mode,'all')
     end
 end
     % Increased speed Simulation Scenarios
-    generateStairInputs(scenarioDir, shaftSpeeds, time);
+    generateStairInputs(scenarioDir, shaftSpeeds, time, idx);
     
     % Decreased speed Simulation scenarios
-    generateStairInputs(scenarioDir, fliplr(shaftSpeeds), time);
+    generateStairInputs(scenarioDir, fliplr(shaftSpeeds), time, idx);
 
 end
 

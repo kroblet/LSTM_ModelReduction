@@ -69,7 +69,7 @@ trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
 signalNames = {'Nref','Phi','N', 'power', 'eff'};
-visualizeTrainData(trainData(:),signalNames )
+visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
 sigNumIn = 5;
@@ -89,7 +89,7 @@ layers = [
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.8; % the percentage of the data that they will be used for training
+trainPercentage = 0.5; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -97,6 +97,12 @@ trainPercentage = 0.8; % the percentage of the data that they will be used for t
 %% Preprocess
 [XTrain, TTrain] = preprocessTrainData(dataTrain, outStartIdx);
 [XTest, TTest] = preprocessTrainData(dataTest, outStartIdx);
+
+%% Inspect Train Data
+visualizeTrainData(XTrain(:),signalNames, 'Train Data')
+
+%% Inspect Test Data
+visualizeTrainData(XTest(:),signalNames, 'Test Data')
 
 %% Train LSTM Network
 options = trainingOptions("adam", ...
