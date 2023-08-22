@@ -68,12 +68,12 @@ resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-signalNames = {'Nref','Phi','N', 'power', 'eff'};
+signalNames = {'Nref','Phi','N'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 5;
-sigNumOut = 4;
+sigNumIn = 3;
+sigNumOut = 2;
 outStartIdx = 2;
 
 %% LSTM Architecture
@@ -124,12 +124,13 @@ if train
 end
 
 %% Check response
-
 results = predict(net,XTest,SequencePaddingDirection="left");
-inspectPredData(results)
+
+%% Save NN architecture
 save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
+
 %% Inspect NN response
-inspectPredData(results)
+visualizeTrainData(results, signalNames(outStartIdx:end), 'NN Response Data')
 
 %% Compare responses
 
@@ -141,6 +142,6 @@ import Simulink.sdi.constraints.MatchesSignalOptions
 testCase = TestCase.forInteractiveUse;    
 % Compare different signal response
 for ix=1:numel(results)
-        testCase.verifyThat(slrtOut{ix},MatchesSignal(reference_codeGen.logsout{ix},'RelTol',1e-1))
+        testCase.verifyThat(results{ix}(1,:),MatchesSignal(TTest{ix}(1,:),'RelTol',1e-1))
 end
 
