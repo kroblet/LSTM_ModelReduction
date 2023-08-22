@@ -89,7 +89,7 @@ layers = [
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.7; % the percentage of the data that they will be used for training
+trainPercentage = 0.5; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -131,4 +131,5 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 %% Inspect NN response
 inspectPredData(results)
 
+%% Compare responses
 
