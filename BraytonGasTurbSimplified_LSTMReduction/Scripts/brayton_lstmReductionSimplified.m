@@ -51,7 +51,7 @@ out = parsim(simIn);
 %% Save results
 save(fullfile(simOutDir,'simOuts'),'out') 
 
-%% Clean simulation outputs
+%% Remove simulation outputs with errors
 idx = 1;
 aux = length(out);
 while idx <= aux
@@ -132,4 +132,15 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 inspectPredData(results)
 
 %% Compare responses
+
+
+import matlab.unittest.TestCase
+import Simulink.sdi.constraints.MatchesSignal
+import Simulink.sdi.constraints.MatchesSignalOptions
+
+testCase = TestCase.forInteractiveUse;    
+% Compare different signal response
+for ix=1:numel(results)
+        testCase.verifyThat(slrtOut{ix},MatchesSignal(reference_codeGen.logsout{ix},'RelTol',1e-1))
+end
 
