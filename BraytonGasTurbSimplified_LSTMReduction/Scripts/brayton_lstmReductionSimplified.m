@@ -6,12 +6,12 @@ modelName = 'brayton_cycle_lstm_simplified';
 simStopTimeShort = 300; % Simulation stop time in s
 simStopTimeLong = 1000; % Simulation stop time in s
 
-train = false; % enable or disable network trainning
+train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
-                    {[4.2e3:1e3:1.2e4],simStopTimeLong},
-                    {[4.5e3:1e3:1.2e4], simStopTimeLong},
+                    {[4.2e3:1e3:1.2e4],simStopTimeShort},
+                    {[4.5e3:1e3:1.2e4], simStopTimeShort},
                     {[4.8e3:2e3:1.2e4], simStopTimeLong}};
 
 for ix=1:numel(shaftSpeedStates)
@@ -89,7 +89,7 @@ layers = [
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.5; % the percentage of the data that they will be used for training
+trainPercentage = 0.7; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -109,7 +109,7 @@ options = trainingOptions("adam", ...
     MaxEpochs=10000, ...
     GradientThreshold=1, ...
     MiniBatchSize=8, ...
-    InitialLearnRate=0.5e-1, ...
+    InitialLearnRate=0.3e-1, ...
     LearnRateSchedule="piecewise", ...
     LearnRateDropPeriod=1.5e3, ...
     LearnRateDropFactor=0.5, ...
