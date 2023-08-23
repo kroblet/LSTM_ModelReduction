@@ -132,14 +132,9 @@ results = predict(net,XTest,SequencePaddingDirection="left");
 save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
 
 %% Inspect NN response
-visualizeTrainData(results, signalNames(outStartIdx:end), 'NN Response Data')
-
-visualizeTrainData(TTest, signalNames(outStartIdx:end), 'Test Data')
-
-
-%%
 dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
-
+mean(dev{1})
+std(dev{1})
 % %% Compare responses
 % 
 % 
