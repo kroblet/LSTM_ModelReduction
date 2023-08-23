@@ -1,7 +1,8 @@
-function visualizeTrainData(trainData,signalNames)
+function visualizeTrainData(trainData,signalNames, figTitle)
 %VISUALIZETRAINDATA Summary of this function goes here
 %   Detailed explanation goes here
 ax = {};
+figure;
 signalNum = size(trainData{1},1);
 for ix=1:signalNum
     ax{ix} = subplot(signalNum,1,ix);
@@ -19,9 +20,10 @@ end
 
 % hold off axes
 for ix=1:signalNum
-    ylabel(signalNames{iy})
+    ylabel(ax{ix},signalNames{ix})
+    grid(ax{ix}, 'on')
     hold(ax{ix},'off')
 end
-
+title(ax{1}, figTitle);
 end
 

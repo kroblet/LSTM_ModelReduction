@@ -3,20 +3,22 @@ proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationInput');
 simOutDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationOutput');
 modelName = 'brayton_cycle_lstm_simplified';
-simStopTimeShort = 300; % Simulation stop time in s
+simStopTimeShort = 100; % Simulation stop time in s
 simStopTimeLong = 1000; % Simulation stop time in s
 
-train = false; % enable or disable network trainning
+train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeLong},
-                    {[4.2e3:1e3:1.2e4],simStopTimeLong},
-                    {[4.5e3:1e3:1.5e4], simStopTimeLong},
-                    {[4.8e3:2e3:1.5e4], simStopTimeLong}};
+shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
+                    {[ones(1,4).*4.2e3],simStopTimeShort},                       
+                    {[4.2e3:1e3:1.2e4],simStopTimeShort},
+                    {[4.5e3:1e3:1.2e4], simStopTimeShort},
+                    {[ones(1,4).*5.2e3],simStopTimeShort}, 
+                    {[4.8e3:2e3:1.2e4], simStopTimeShort}};
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
-    shaftSpeedStates{ix}{2}, 'staironly')
+    shaftSpeedStates{ix}{2}, 'stairOnly', ix)
 end
 
 %% Generate Simulink Simulation Inputs
@@ -51,7 +53,7 @@ out = parsim(simIn);
 %% Save results
 save(fullfile(simOutDir,'simOuts'),'out') 
 
-%% Clean simulation outputs
+%% Remove simulation outputs with errors
 idx = 1;
 aux = length(out);
 while idx <= aux
@@ -68,12 +70,12 @@ resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-signalNames = {'Phi','N', 'power', 'eff'};
-visualizeTrainData(trainData(:),signalNames )
+signalNames = {'Phi','N'};
+visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 4;
-sigNumOut = 3;
+sigNumIn = 2;
+sigNumOut = 1;
 outStartIdx = 2;
 
 %% LSTM Architecture
@@ -89,7 +91,7 @@ layers = [
     regressionLayer];
 
 %% Partition trainning data
-trainPercentage = 0.8; % the percentage of the data that they will be used for training
+trainPercentage = 0.5; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -98,12 +100,18 @@ trainPercentage = 0.8; % the percentage of the data that they will be used for t
 [XTrain, TTrain] = preprocessTrainData(dataTrain, outStartIdx);
 [XTest, TTest] = preprocessTrainData(dataTest, outStartIdx);
 
+%% Inspect Train Data
+visualizeTrainData(XTrain(:),signalNames, 'Train Data')
+
+%% Inspect Test Data
+visualizeTrainData(XTest(:),signalNames, 'Test Data')
+
 %% Train LSTM Network
-options = trainingOptions("sgdm", ...
-    MaxEpochs=1000, ...
+options = trainingOptions("adam", ...
+    MaxEpochs=10000, ...
     GradientThreshold=1, ...
-    MiniBatchSize=10, ...
-    InitialLearnRate=0.5e-1, ...
+    MiniBatchSize=8, ...
+    InitialLearnRate=0.3e-1, ...
     LearnRateSchedule="piecewise", ...
     LearnRateDropPeriod=1.5e3, ...
     LearnRateDropFactor=0.5, ...
@@ -118,11 +126,25 @@ if train
 end
 
 %% Check response
-
 results = predict(net,XTest,SequencePaddingDirection="left");
-inspectPredData(results)
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
-%% Inspect NN response
-inspectPredData(results)
 
+%% Save NN architecture
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
+
+%% Inspect NN response
+dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
+mean(dev{1})
+std(dev{1})
+% %% Compare responses
+% 
+% 
+% import matlab.unittest.TestCase
+% import Simulink.sdi.constraints.MatchesSignal
+% import Simulink.sdi.constraints.MatchesSignalOptions
+% 
+% testCase = TestCase.forInteractiveUse;    
+% % Compare different signal response
+% for ix=1:numel(results)
+%         testCase.verifyThat(results{ix}(1,:),MatchesSignal(TTest{ix}(1,:),'RelTol',1e-1))
+% end
 
