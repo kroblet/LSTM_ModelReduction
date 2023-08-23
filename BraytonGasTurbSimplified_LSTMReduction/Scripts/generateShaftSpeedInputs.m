@@ -9,7 +9,7 @@ time = timeVector(stepTimes, 0.8*timeStep);
 if strcmp(mode,'all')
     % Constant Simulation Scenarios
     for ix =1:numel(shaftSpeedStates)
-        generateCteInput(scenarioDir, shaftSpeedStates(ix), simStopTime)
+        generateCteInput(scenarioDir, shaftSpeedStates(ix), simStopTime, idx)
     end
 end
     % Increased speed Simulation Scenarios

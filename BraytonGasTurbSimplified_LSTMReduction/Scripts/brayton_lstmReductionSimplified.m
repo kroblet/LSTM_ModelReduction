@@ -10,13 +10,15 @@ train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
+                    {[ones(1,4).*4.2e3],simStopTimeShort},                       
                     {[4.2e3:1e3:1.2e4],simStopTimeShort},
                     {[4.5e3:1e3:1.2e4], simStopTimeShort},
+                    {[ones(1,4).*5.2e3],simStopTimeShort}, 
                     {[4.8e3:2e3:1.2e4], simStopTimeShort}};
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
-    shaftSpeedStates{ix}{2}, 'staironly', ix)
+    shaftSpeedStates{ix}{2}, 'stairOnly', ix)
 end
 
 %% Generate Simulink Simulation Inputs
@@ -132,16 +134,22 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 %% Inspect NN response
 visualizeTrainData(results, signalNames(outStartIdx:end), 'NN Response Data')
 
-%% Compare responses
+visualizeTrainData(TTest, signalNames(outStartIdx:end), 'Test Data')
 
 
-import matlab.unittest.TestCase
-import Simulink.sdi.constraints.MatchesSignal
-import Simulink.sdi.constraints.MatchesSignalOptions
+%%
+dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
 
-testCase = TestCase.forInteractiveUse;    
-% Compare different signal response
-for ix=1:numel(results)
-        testCase.verifyThat(results{ix}(1,:),MatchesSignal(TTest{ix}(1,:),'RelTol',1e-1))
-end
+% %% Compare responses
+% 
+% 
+% import matlab.unittest.TestCase
+% import Simulink.sdi.constraints.MatchesSignal
+% import Simulink.sdi.constraints.MatchesSignalOptions
+% 
+% testCase = TestCase.forInteractiveUse;    
+% % Compare different signal response
+% for ix=1:numel(results)
+%         testCase.verifyThat(results{ix}(1,:),MatchesSignal(TTest{ix}(1,:),'RelTol',1e-1))
+% end
 
