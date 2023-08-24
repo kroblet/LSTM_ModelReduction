@@ -54,28 +54,19 @@ out = parsim(simIn);
 save(fullfile(simOutDir,'simOuts'),'out') 
 
 %% Remove simulation outputs with errors
-idx = 1;
-aux = length(out);
-while idx <= aux
-    if ~isempty(out(idx).ErrorMessage)
-        out(idx) = [];
-    else
-        idx=idx+1;
-    end
-    aux = length(out);
-end
+out = removeSimOutWithErrors(out);
 
 %% Configure trainning data format
 resampleTimeStep = 1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-signalNames = {'Phi','N', 'MechPower', 'T3'};
+signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 4;
-sigNumOut = 3;
+sigNumIn = 5;
+sigNumOut = 4;
 outStartIdx = 2;
 
 %% LSTM Architecture
@@ -153,7 +144,7 @@ for t = 1:numPredictionTimeSteps
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
 end
 
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithT3'), 'net')
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
 
 
 figure

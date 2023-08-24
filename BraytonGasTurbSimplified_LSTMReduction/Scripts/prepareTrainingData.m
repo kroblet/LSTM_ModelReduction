@@ -59,7 +59,7 @@ for ix =1:caseNum
 
 
     % minimum data
-    data{ix} = [phi_res./1000; compRPM_res./1000; power_res./1000 ;t3_res./1000];
+    data{ix} = [RPMref_res./1000; phi_res./1000; compRPM_res./1000; power_res./1000 ;t3_res./1000];
 end
 end
 
