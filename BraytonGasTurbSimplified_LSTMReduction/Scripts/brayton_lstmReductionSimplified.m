@@ -135,16 +135,28 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
 mean(dev{1})
 std(dev{1})
-% %% Compare responses
-% 
-% 
-% import matlab.unittest.TestCase
-% import Simulink.sdi.constraints.MatchesSignal
-% import Simulink.sdi.constraints.MatchesSignalOptions
-% 
-% testCase = TestCase.forInteractiveUse;    
-% % Compare different signal response
-% for ix=1:numel(results)
-%         testCase.verifyThat(results{ix}(1,:),MatchesSignal(TTest{ix}(1,:),'RelTol',1e-1))
-% end
 
+%% Open loop prediction - Update States
+X = XTest{1};
+TY = TTest{1};
+
+net = resetState(net);
+offset = 1;
+[net,~] = predictAndUpdateState(net,X(:,1:offset));
+
+numTimeSteps = size(X,2);
+numPredictionTimeSteps = numTimeSteps - offset;
+Y = zeros(sigNumOut,numPredictionTimeSteps);
+
+for t = 1:numPredictionTimeSteps
+    Xt = X(:,offset+t);
+    [net,Y(:,t)] = predictAndUpdateState(net,Xt);
+end
+
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdate'), 'net')
+
+figure
+plot(Y')
+
+hold on 
+plot(TY')

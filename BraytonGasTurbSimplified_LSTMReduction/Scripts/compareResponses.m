@@ -23,10 +23,10 @@ for ix=1:numCases
         plot(ax{iy}, dataRef(iy,:));
         plot(ax{iy}, dataInp(iy,:));
         dev{iy} = dataInp(iy,:)-dataRef(iy,:);
-        plot(axEr{iy}, dev{iy}*1000);
+        plot(axEr{iy}, dev{iy});
         lg{ik} = ['Scenario ' num2str(iy)];
         lg{ik+1} = ['Response ' num2str(iy)];
-        ik= ik+2
+        ik= ik+2;
     end
 end
 
