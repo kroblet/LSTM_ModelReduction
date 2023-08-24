@@ -150,3 +150,45 @@ plot(Y')
 
 hold on 
 plot(TY')
+
+%% Simulate ROM model
+modelROM = 'brayton_cycle_LSTM_ROM';
+clearvars simInROM
+scenarioIdx = 9;
+testScenario = scenario{scenarioIdx};  
+simInROM = Simulink.SimulationInput(modelROM);
+
+% Initialize compressor's RPM with respect to the Simulation scenarios
+rpm0 = testScenario.shaftSpeedRef{1}.Values.Data(1);
+simInROM = setVariable(simInROM, 'rpm0', rpm0, ...
+    'Workspace', modelName);  
+simInROM = setVariable(simInROM, 'rpm_setpoint', testScenario.shaftSpeedRef{1}.Values.Data', ...
+    'Workspace', modelName);    
+simInROM = setVariable(simInROM,'time_setpoint', testScenario.shaftSpeedRef{1}.Values.Time', ...
+    'Workspace', modelName);
+
+%% Simulate ROM
+outROM = sim(simInROM);
+
+%% Test response
+import matlab.unittest.TestCase
+import Simulink.sdi.constraints.MatchesSignal
+import Simulink.sdi.constraints.MatchesSignalOptions
+% Create a test case:
+testCase = TestCase.forInteractiveUse;    
+
+% Set accepted tolerance
+relTol = 1e-1;
+
+% Map log signals
+dic = {};
+dic{1} = 2;
+dic{2} = 1;
+dic{3} = 4;
+
+% Compare different signals between ROM LSTM model and original model.
+for ix=1:outROM.logsout.numElements-1
+        testCase.verifyThat(outROM.logsout{ix},MatchesSignal(out(scenarioIdx).logsout{dic{ix}},'RelTol',1e-4))
+end
+
+
