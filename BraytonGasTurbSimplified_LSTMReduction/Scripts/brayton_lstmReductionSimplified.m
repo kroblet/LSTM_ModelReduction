@@ -70,12 +70,12 @@ resampleTimeStep = 1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-signalNames = {'Phi','N', 'MechPower'};
+signalNames = {'Phi','N', 'MechPower', 'T3'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 3;
-sigNumOut = 2;
+sigNumIn = 4;
+sigNumOut = 3;
 outStartIdx = 2;
 
 %% LSTM Architecture
@@ -153,7 +153,8 @@ for t = 1:numPredictionTimeSteps
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
 end
 
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdate'), 'net')
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithT3'), 'net')
+
 
 figure
 plot(Y')

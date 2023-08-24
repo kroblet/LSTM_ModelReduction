@@ -23,7 +23,7 @@ for ix =1:caseNum
     % p2 = out(ix).simlog_sscfluids_brayton_cycle.Ts_2.Pressure_Temperature_Sensor_G.P.series.values;
     % 
     % % temperature/ pressure at thermodynamic stage 3 - Turbine input   
-    % t3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.T.series.values;
+    t3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.T.series.values;
     % p3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.P.series.values;
     % 
     % % temperature/ pressure at thermodynamic stage 4 - APU input
@@ -47,7 +47,7 @@ for ix =1:caseNum
     % resample physical signals
     % t1_res = interp1(time, t1, resTime);
     % t2_res = interp1(time, t2, resTime);
-    % t3_res = interp1(time, t3, resTime);
+    t3_res = interp1(time, t3, resTime);
     % t4_res = interp1(time, t4, resTime);
     % t5_res = interp1(time, t5, resTime);
     % 
@@ -59,7 +59,7 @@ for ix =1:caseNum
 
 
     % minimum data
-    data{ix} = [phi_res./1000; compRPM_res./1000; power_res./1000];
+    data{ix} = [phi_res./1000; compRPM_res./1000; power_res./1000 ;t3_res./1000];
 end
 end
 
