@@ -3,7 +3,7 @@ proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationInput');
 simOutDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationOutput');
 modelName = 'brayton_cycle_lstm_simplified';
-simStopTimeShort = 100; % Simulation stop time in s
+simStopTimeShort = 300; % Simulation stop time in s
 simStopTimeLong = 1000; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
@@ -70,12 +70,12 @@ resampleTimeStep = 0.1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
-signalNames = {'Phi','N'};
+signalNames = {'Phi','N', 'MechPower'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 2;
-sigNumOut = 1;
+sigNumIn = 3;
+sigNumOut = 2;
 outStartIdx = 2;
 
 %% LSTM Architecture
