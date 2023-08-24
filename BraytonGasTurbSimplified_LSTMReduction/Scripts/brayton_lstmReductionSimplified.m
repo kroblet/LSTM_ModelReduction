@@ -35,12 +35,9 @@ for ix=1:numCases
 
     simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
     % Initialize compressor's RPM with respect to the Simulation scenarios
-
     rpm0 = aux{2};
     simIn(ix) = setVariable(simIn(ix), 'rpm0', str2num(rpm0), ...
         'Workspace', modelName);  
-    simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
-        'Workspace', modelName);
     simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
         'Workspace', modelName);    
     simIn(ix) = setVariable(simIn(ix),'time_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
@@ -56,9 +53,9 @@ save(fullfile(simOutDir,'simOuts'),'out')
 %% Remove simulation outputs with errors
 out = removeSimOutWithErrors(out);
 
-%% Configure trainning data format
-resampleTimeStep = 1;
-trainData = prepareTrainingData(out,resampleTimeStep);
+%% Resample and configure data for trainning
+resampleTimeStep = 1; % resample time step in (s)
+trainData = prepareTrainingData(out,resampleTimeStep); 
 
 %% Inspect resampled data
 signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
@@ -75,7 +72,6 @@ layers = [
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
-    % lstmLayer(100)
     reluLayer
     dropoutLayer
     fullyConnectedLayer(sigNumOut)
@@ -143,6 +139,8 @@ for t = 1:numPredictionTimeSteps
     Xt = X(:,offset+t);
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
 end
+
+net = resetState(net);
 
 save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
 
