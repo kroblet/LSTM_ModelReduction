@@ -13,7 +13,7 @@ shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
                     {[ones(1,4).*4.2e3],simStopTimeShort},                       
                     {[4.2e3:1e3:1.2e4],simStopTimeShort},
                     {[4.5e3:1e3:1.2e4], simStopTimeShort},
-                    {[ones(1,4).*5.2e3],simStopTimeShort}, 
+                    {[ones(1,4).*4.8e3],simStopTimeShort}, 
                     {[4.8e3:2e3:1.2e4], simStopTimeShort}};
 
 for ix=1:numel(shaftSpeedStates)
@@ -66,7 +66,7 @@ while idx <= aux
 end
 
 %% Configure trainning data format
-resampleTimeStep = 0.1;
+resampleTimeStep = 1;
 trainData = prepareTrainingData(out,resampleTimeStep);
 
 %% Inspect resampled data
@@ -108,7 +108,7 @@ visualizeTrainData(XTest(:),signalNames, 'Test Data')
 
 %% Train LSTM Network
 options = trainingOptions("adam", ...
-    MaxEpochs=10000, ...
+    MaxEpochs=5000, ...
     GradientThreshold=1, ...
     MiniBatchSize=8, ...
     InitialLearnRate=0.3e-1, ...
