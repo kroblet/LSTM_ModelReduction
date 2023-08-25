@@ -141,7 +141,7 @@ for t = 1:numPredictionTimeSteps
 end
 
 net = resetState(net);
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionUpdateStates','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
 
 figure
 plot(Y')
@@ -170,7 +170,7 @@ simInROM = setVariable(simInROM,'time_setpoint', testScenario.shaftSpeedRef{1}.V
 %% Simulate ROM
 outROM = sim(simInROM);
 
-%% Test response
+%% Compare ROM with initial model
 import matlab.unittest.TestCase
 import Simulink.sdi.constraints.MatchesSignal
 import Simulink.sdi.constraints.MatchesSignalOptions
