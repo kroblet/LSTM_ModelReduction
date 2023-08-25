@@ -55,7 +55,8 @@ out = removeSimOutWithErrors(out);
 
 %% Resample and configure data for trainning
 resampleTimeStep = 1; % resample time step in (s)
-trainData = prepareTrainingData(out,resampleTimeStep); 
+scaleFactor = 1000; % scale the input data
+trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor); 
 
 %% Inspect resampled data
 signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
