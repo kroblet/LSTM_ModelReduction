@@ -141,15 +141,15 @@ for t = 1:numPredictionTimeSteps
 end
 
 net = resetState(net);
-
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
-
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionUpdateStates','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
 
 figure
 plot(Y')
 
+%% Quick inspect
 hold on 
 plot(TY')
+hold off
 
 %% Simulate ROM model
 modelROM = 'brayton_cycle_LSTM_ROM';
