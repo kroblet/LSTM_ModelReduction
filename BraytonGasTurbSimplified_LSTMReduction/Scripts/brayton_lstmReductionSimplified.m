@@ -136,8 +136,9 @@ numTimeSteps = size(X,2);
 numPredictionTimeSteps = numTimeSteps - offset;
 Y = zeros(sigNumOut,numPredictionTimeSteps);
 
-for t = 1:numPredictionTimeSteps
-    Xt = X(:,offset+t);
+
+for t = 2:numPredictionTimeSteps
+    Xt = [X(1,t-1);Y(:,t-1)]
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
 end
 
