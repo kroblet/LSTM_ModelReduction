@@ -9,9 +9,9 @@ function [X,Y] = setupData(Xorig,Yorig,chunkSize,numFeatures)
         idxStart = 1+(ii-1)*chunkSize;
         idxEnd = ii*chunkSize;
         X{ii} = Xorig(1:numFeatures,idxStart:idxEnd);
-        Y{ii} = Yorig(idxStart:idxEnd);
+        Y{ii} = Yorig(1:numFeatures-1, idxStart:idxEnd);
     end
     X{end} = Xorig(1:numFeatures,idxEnd+1:end);
-    Y{end} = Yorig(idxEnd+1:end);
+    Y{end} = Yorig(1:numFeatures-1,idxEnd+1:end);
 
 end

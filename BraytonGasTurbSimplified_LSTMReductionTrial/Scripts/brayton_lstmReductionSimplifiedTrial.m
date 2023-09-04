@@ -56,7 +56,7 @@ out = removeSimOutWithErrors(out);
 
 %% Resample and configure data for trainning
 resampleTimeStep = 1; % resample time step in (s)
-scaleFactor = 1000; % scale the input data
+scaleFactor = 1; % scale the input data
 removeInitEffect = 1;
 trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor,removeInitEffect); 
 
@@ -73,8 +73,39 @@ T = array2table([concatData'], VariableNames=["Reference RPM","Phi","RPM","Mech 
 
 stackedplot(T)
 
+%% 1.2. Prepare training and validation data
+holdOut = 0.2;
+X = concatData;
+percentValidation = round(length(X)*holdOut);
+XTrain = X(:,1:end-percentValidation);
+XVal = X(:,end-percentValidation+1:end);
 
+YTrain = X(2:end, 1:end-percentValidation);
+YVal = Y(2:end, end-percentValidation+1:end);
 
+% Normalize training and validation data
+for ix=1:size(XTrain,1)
+    meanTrain(ix) = mean(XTrain(ix,:));
+    meanVal(ix) = mean(XVal(ix,:));
+    stdTrain(ix) = std(XTrain(ix,:));
+    stdVal(ix) = std(XVal(ix,:));
+
+end
+
+normalize = @(x,mu,sigma) (x - mu) ./ sigma;
+for ix=1:size(XTrain,1)
+    normTrain(ix,:) = normalize(XTrain(ix,:),meanTrain(ix), stdTrain(ix));
+    normVal(ix,:) = normalize(XVal(ix,:),meanVal(ix), stdVal(ix));
+end
+XTrainNormalized = normTrain;
+YTrainNormalized = normTrain(2:end,:);
+
+XValNormalized = normVal;
+YValNormalized = normVal(2:end,:);
+
+chunksize = 2000;
+numFeatures = size(XTrainNormalized,1);
+[XTrainNormalized_cell, YTrainNormalized_cell] = helper.setupData(XTrainNormalized, YTrainNormalized, chunksize, numFeatures);
 
 %% Inspect resampled data
 signalNames = {'Nref','Phi','N', 'MechPower'};
@@ -83,10 +114,85 @@ visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 %% Inputs outputs
 sigNumIn = 4;
 sigNumOut = 3;
+numResponses = 3;
 outStartIdx = 2;
 numHiddenUnits = 60;
 dropoutProbability = 0.2;
-%% LSTM Architecture
+
+
+%% LSTM Architecture - Normalized
+layers = [
+    sequenceInputLayer(numFeatures,"Name","input")
+    lstmLayer(numHiddenUnits,"Name","lstm")
+    dropoutLayer(dropoutProbability,"Name","drop")
+    fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
+    reluLayer("Name","relu")
+    fullyConnectedLayer(numResponses,"Name","fc_2")
+    regressionLayer("Name","regressionoutput")
+    ];
+
+opts = trainingOptions("adam",...
+    "ExecutionEnvironment","auto",...
+    "InitialLearnRate",0.01,...
+    "MaxEpochs",300,...
+    "Shuffle","every-epoch",... 
+    "LearnRateSchedule","piecewise",...
+    "LearnRateDropPeriod",200,...
+    "LearnRateDropFactor",0.1,...
+    "ValidationFrequency",10,...
+    "ValidationData",{XValNormalized,YValNormalized},...
+    "Plots","training-progress");
+if train
+    [net, traininfo] = trainNetwork(XTrainNormalized_cell,YTrainNormalized_cell,layers,opts);
+end
+
+
+%% Check response
+results = predict(net,XTrainNormalized,SequencePaddingDirection="left");
+
+%% Save NN architecture
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
+
+%% Inspect NN response
+dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
+mean(dev{1})
+std(dev{1})
+
+
+
+%% Open loop prediction - Update States
+X = XValNormalized;
+TY = YValNormalized;
+
+net = resetState(net);
+offset = 1;
+[net,~] = predictAndUpdateState(net,X(:,1:offset));
+
+numTimeSteps = size(X,2);
+numPredictionTimeSteps = numTimeSteps - offset;
+Y = zeros(sigNumOut,numPredictionTimeSteps);
+
+
+for t = 2:numPredictionTimeSteps
+    Xt = [X(1,t-1);Y(:,t-1)];
+    [net,Y(:,t)] = predictAndUpdateState(net,Xt);
+end
+
+net = resetState(net);
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNrefNorm'), 'net')
+
+inspSig = 3;
+figure
+plot(Y(inspSig,:)'*stdVal(inspSig)+meanVal(inspSig))
+hold on
+plot(TY(inspSig,:)'*stdVal(inspSig)+meanVal(inspSig))
+hold off
+
+
+
+
+
+%% LSTM Architecture - Scaled
 layers = [
     sequenceInputLayer(sigNumIn,Normalization="rescale-zero-one")
     fullyConnectedLayer(200)
@@ -107,6 +213,7 @@ layers = [
     fullyConnectedLayer(sigNumOut,"Name","fc_2")
     regressionLayer("Name","regressionoutput")
     ];
+
 
 %% Partition trainning data
 trainPercentage = 0.8; % the percentage of the data that they will be used for training
