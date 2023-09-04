@@ -55,7 +55,7 @@ out = removeSimOutWithErrors(out);
 
 %% Resample and configure data for trainning
 resampleTimeStep = 1; % resample time step in (s)
-scaleFactor = 1000; % scale the input data
+scaleFactor = 1; % scale the input data
 trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor); 
 
 %% Inspect resampled data
@@ -98,7 +98,7 @@ visualizeTrainData(XTest(:),signalNames, 'Test Data')
 options = trainingOptions("adam", ...
     MaxEpochs=5000, ...
     GradientThreshold=1, ...
-    MiniBatchSize=8, ...
+    MiniBatchSize=20, ...
     InitialLearnRate=0.3e-1, ...
     LearnRateSchedule="piecewise", ...
     LearnRateDropPeriod=1.5e3, ...
@@ -138,7 +138,7 @@ Y = zeros(sigNumOut,numPredictionTimeSteps);
 
 
 for t = 2:numPredictionTimeSteps
-    Xt = [X(1,t-1);Y(:,t-1)]
+    Xt = [X(1,t-1);Y(:,t-1)];
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
 end
 
