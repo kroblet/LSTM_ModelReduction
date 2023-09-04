@@ -1,18 +1,24 @@
-function data = prepareTrainingData(out,sampleStep, scaleFactor)
+function data = prepareTrainingData(out,sampleStep, scaleFactor, removeInitEffect)
 %PREPARETRAININGDATA takes as input the Simulink.SimulationOutputs and
 %returns a cell array with the trainning inputs and outputs
 
 caseNum = length(out);
 data={};
+if removeInitEffect==0
+    removeInit = 1;
+    removeEnd = 0;
+else
+    removeInit = removeInitEffect;
+    removeEnd = removeInitEffect;
 
 for ix =1:caseNum
-    time = out(ix).tout;
-    compRPM = out(ix).logsout{1}.Values.Data;
-    phi = out(ix).logsout{2}.Values.Data;
-    power = out(ix).logsout{4}.Values.Data;
-    surgeMargin = out(ix).logsout{3}.Values.Data;
-    globEff = out(ix).logsout{5}.Values.Data;
-    RPMref = out(ix).logsout{6}.Values.Data;
+    time = out(ix).tout(removeInit:end-removeEnd);
+    compRPM = out(ix).logsout{1}.Values.Data(removeInit:end-removeEnd);
+    phi = out(ix).logsout{2}.Values.Data(removeInit:end-removeEnd);
+    power = out(ix).logsout{4}.Values.Data(removeInit:end-removeEnd);
+    surgeMargin = out(ix).logsout{3}.Values.Data(removeInit:end-removeEnd);
+    globEff = out(ix).logsout{5}.Values.Data(removeInit:end-removeEnd);
+    RPMref = out(ix).logsout{6}.Values.Data(removeInit:end-removeEnd);
 
     % temperature/ pressure at thermodynamic stage 1 - Compressor input
     % t1 = out(ix).simlog_sscfluids_brayton_cycle.Ts_1.Pressure_Temperature_Sensor_G.T.series.values;
@@ -24,6 +30,7 @@ for ix =1:caseNum
     % 
     % % temperature/ pressure at thermodynamic stage 3 - Turbine input   
     t3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.T.series.values;
+    t3 = t3(removeInit:end-removeInitEffect);
     % p3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.P.series.values;
     % 
     % % temperature/ pressure at thermodynamic stage 4 - APU input
@@ -60,7 +67,7 @@ for ix =1:caseNum
 
     % minimum data
     data{ix} = [RPMref_res./scaleFactor; phi_res./scaleFactor;...
-        compRPM_res./scaleFactor; power_res./scaleFactor; t3_res./scaleFactor];
+        compRPM_res./scaleFactor; power_res./scaleFactor];
 end
 end
 

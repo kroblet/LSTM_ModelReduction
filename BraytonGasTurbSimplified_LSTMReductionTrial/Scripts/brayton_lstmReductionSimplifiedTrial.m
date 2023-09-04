@@ -10,11 +10,12 @@ train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
-                    {[ones(1,4).*4.2e3],simStopTimeShort},                       
+                    % {[ones(1,4).*4.2e3],simStopTimeShort},                       
                     {[4.2e3:1e3:1.2e4],simStopTimeShort},
                     {[4.5e3:1e3:1.2e4], simStopTimeShort},
-                    {[ones(1,4).*4.8e3],simStopTimeShort}, 
-                    {[4.8e3:2e3:1.2e4], simStopTimeShort}};
+                    % {[ones(1,4).*4.8e3],simStopTimeShort}, 
+                    % {[4.8e3:2e3:1.2e4], simStopTimeShort}
+                    };
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
@@ -55,18 +56,36 @@ out = removeSimOutWithErrors(out);
 
 %% Resample and configure data for trainning
 resampleTimeStep = 1; % resample time step in (s)
-scaleFactor = 1; % scale the input data
-trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor); 
+scaleFactor = 1000; % scale the input data
+removeInitEffect = 1;
+trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor,removeInitEffect); 
+
+%% Concat data
+concatData = [];
+concatData = [trainData{1}];
+for ix=2:numel(trainData)
+ concatData = cat(2,concat,trainData{ix}(:,removeInitEffect:end));
+end
+
+%% Visualize concat data
+figure
+T = array2table([concatData'], VariableNames=["Reference RPM","Phi","RPM","Mech Power"]);
+
+stackedplot(T)
+
+
+
 
 %% Inspect resampled data
-signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
+signalNames = {'Nref','Phi','N', 'MechPower'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 5;
-sigNumOut = 4;
+sigNumIn = 4;
+sigNumOut = 3;
 outStartIdx = 2;
-
+numHiddenUnits = 60;
+dropoutProbability = 0.2;
 %% LSTM Architecture
 layers = [
     sequenceInputLayer(sigNumIn,Normalization="rescale-zero-one")
@@ -78,8 +97,19 @@ layers = [
     fullyConnectedLayer(sigNumOut)
     regressionLayer];
 
+
+layers = [
+    sequenceInputLayer(sigNumIn,"Name","input")
+    lstmLayer(numHiddenUnits,"Name","lstm")
+    dropoutLayer(dropoutProbability,"Name","drop")
+    fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
+    reluLayer("Name","relu")
+    fullyConnectedLayer(sigNumOut,"Name","fc_2")
+    regressionLayer("Name","regressionoutput")
+    ];
+
 %% Partition trainning data
-trainPercentage = 0.5; % the percentage of the data that they will be used for training
+trainPercentage = 0.8; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
 [dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
@@ -99,7 +129,7 @@ options = trainingOptions("adam", ...
     MaxEpochs=5000, ...
     GradientThreshold=1, ...
     MiniBatchSize=20, ...
-    InitialLearnRate=0.3e-1, ...
+    InitialLearnRate=1e-3, ...
     LearnRateSchedule="piecewise", ...
     LearnRateDropPeriod=1.5e3, ...
     LearnRateDropFactor=0.5, ...
@@ -114,7 +144,7 @@ if train
 end
 
 %% Check response
-results = predict(net,XTest,SequencePaddingDirection="left");
+results = predict(net,XTrain,SequencePaddingDirection="left");
 
 %% Save NN architecture
 save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
@@ -123,6 +153,8 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
 mean(dev{1})
 std(dev{1})
+
+
 
 %% Open loop prediction - Update States
 X = XTest{1};
@@ -148,7 +180,7 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 figure
 plot(Y')
 
-%% Quick inspect
+% Quick inspect
 hold on 
 plot(TY')
 hold off

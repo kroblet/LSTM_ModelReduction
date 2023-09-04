@@ -10,12 +10,12 @@ train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
-                    {[ones(1,4).*4.2e3],simStopTimeShort},                       
+                    % {[ones(1,4).*4.2e3],simStopTimeShort},                       
                     {[4.2e3:1e3:1.2e4],simStopTimeShort},
                     {[4.5e3:1e3:1.2e4], simStopTimeShort},
-                    {[ones(1,4).*4.8e3],simStopTimeShort}, 
-                    {[4.8e3:2e3:1.2e4], simStopTimeShort}};
-
+                    % {[ones(1,4).*4.8e3],simStopTimeShort} 
+                    % {[4.8e3:2e3:1.2e4], simStopTimeShort}
+                    }
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
     shaftSpeedStates{ix}{2}, 'stairOnly', ix)
@@ -55,7 +55,7 @@ out = removeSimOutWithErrors(out);
 
 %% Resample and configure data for trainning
 resampleTimeStep = 1; % resample time step in (s)
-scaleFactor = 1; % scale the input data
+scaleFactor = 1000; % scale the input data
 trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor); 
 
 %% Inspect resampled data
@@ -148,7 +148,7 @@ save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','brayton
 figure
 plot(Y')
 
-%% Quick inspect
+% Quick inspect
 hold on 
 plot(TY')
 hold off
