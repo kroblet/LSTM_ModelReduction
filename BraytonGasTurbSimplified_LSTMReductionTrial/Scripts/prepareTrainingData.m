@@ -67,7 +67,8 @@ for ix =1:caseNum
 
     % minimum data
     data{ix} = [RPMref_res./scaleFactor; phi_res./scaleFactor;...
-        compRPM_res./scaleFactor; power_res./scaleFactor; t3./scaleFactor];
+        compRPM_res./scaleFactor; power_res./scaleFactor; t3_res./scaleFactor
+        ];
 end
 end
 

@@ -9,10 +9,10 @@ simStopTimeLong = 1000; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
+shaftSpeedStates = {{[4e3:5e2:1.1e4],simStopTimeShort},
                     % {[ones(1,4).*4.2e3],simStopTimeShort},                       
-                    {[4.2e3:1e3:1.2e4],simStopTimeShort},
-                    {[4.5e3:1e3:1.2e4], simStopTimeShort},
+                    {[4.2e3:5e2:1.2e4],simStopTimeShort},
+                    {[4.5e3:5e2:1.2e4], simStopTimeShort},
                     % {[ones(1,4).*4.8e3],simStopTimeShort}, 
                     % {[4.8e3:2e3:1.2e4], simStopTimeShort}
                     };
@@ -62,18 +62,19 @@ trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor,removeInitEffe
 
 %% Concat data
 concatData = [];
-concatData = [trainData{1}];
-for ix=2:numel(trainData)
- concatData = cat(2,concat,trainData{ix}(:,removeInitEffect:end));
+% concatData = [trainData{1}];
+for ix=1:numel(trainData)
+ concatData = cat(2,concatData,trainData{ix}(:,:));
 end
 
 %% Visualize concat data
 figure
-T = array2table([concatData'], VariableNames=["Reference RPM","Phi","RPM","Mech Power"]);
+T = array2table([concatData'], VariableNames=["Reference RPM","Phi","RPM","Mech Power","T3"]);
 
 stackedplot(T)
 
 %% 1.2. Prepare training and validation data
+clear XTrainNormalized YTrainNormalized normTrain normVal
 holdOut = 0.2;
 X = concatData;
 percentValidation = round(length(X)*holdOut);
@@ -81,7 +82,7 @@ XTrain = X(:,1:end-percentValidation);
 XVal = X(:,end-percentValidation+1:end);
 
 YTrain = X(2:end, 1:end-percentValidation);
-YVal = Y(2:end, end-percentValidation+1:end);
+YVal = X(2:end, end-percentValidation+1:end);
 
 % Normalize training and validation data
 for ix=1:size(XTrain,1)
@@ -103,27 +104,70 @@ YTrainNormalized = normTrain(2:end,:);
 XValNormalized = normVal;
 YValNormalized = normVal(2:end,:);
 
-chunksize = 2000;
+chunksize = 500;
 numFeatures = size(XTrainNormalized,1);
 [XTrainNormalized_cell, YTrainNormalized_cell] = helper.setupData(XTrainNormalized, YTrainNormalized, chunksize, numFeatures);
 
 %% Inspect resampled data
-signalNames = {'Nref','Phi','N', 'MechPower'};
+signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
+%% Data normalize per scenario
+
+% Partition trainning data
+trainPercentage = 0.8; % the percentage of the data that they will be used for training
+                       % the rest will be used for test
+
+[dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
+
+% Normalize train scenarios
+for iy=1:size(dataTrain,2)
+    normTrainSep = [];
+    % Normalize train data
+    for ix=1:size(dataTrain{iy},1)
+        normTrainSep(ix,:) = normalize(dataTrain{iy}(ix,:),meanTrain(ix), stdTrain(ix));
+    end
+    dataTrainNorm{iy} = normTrainSep;
+end
+
+% Normalize test scenarios
+for iy=1:size(dataTest,2)
+    normValSep = [];
+    for ix=1:size(XTrainAux,1)
+        normValSep(ix,:) = normalize(dataTest{iy}(ix,:),meanVal(ix), stdVal(ix));
+    end
+    dataValNorm{iy} = normValSep;
+end
+
+% Preprocess
+[XTrainSep, TTrainSep] = preprocessTrainData(dataTrainNorm, outStartIdx);
+[XTestSep, TTestSep] = preprocessTrainData(dataValNorm, outStartIdx);
+
+
+
 %% Inputs outputs
-sigNumIn = 4;
-sigNumOut = 3;
-numResponses = 3;
+sigNumIn = numFeatures;
+sigNumOut = numFeatures-1;
+numResponses = sigNumOut;
 outStartIdx = 2;
-numHiddenUnits = 60;
+numHiddenUnits = 100;
 dropoutProbability = 0.2;
 
+% Define input dataset
+% XTrainData = XTrainNormalized_cell;
+% XTestData = XValNormalized;
+% YTrainData = YTrainNormalized_cell;
+% YTestData = YValNormalized;
+
+XTrainData = XTrainSep;
+XTestData = XTestSep;
+YTrainData = TTrainSep;
+YTestData = TTestSep;
 
 %% LSTM Architecture - Normalized
 layers = [
     sequenceInputLayer(numFeatures,"Name","input")
-    lstmLayer(numHiddenUnits,"Name","lstm")
+    lstmLayer(numHiddenUnits,"Name","lstm",'OutputMode','sequence')
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
     reluLayer("Name","relu")
@@ -134,16 +178,16 @@ layers = [
 opts = trainingOptions("adam",...
     "ExecutionEnvironment","auto",...
     "InitialLearnRate",0.01,...
-    "MaxEpochs",300,...
+    "MaxEpochs",1000,...
     "Shuffle","every-epoch",... 
     "LearnRateSchedule","piecewise",...
     "LearnRateDropPeriod",200,...
     "LearnRateDropFactor",0.1,...
     "ValidationFrequency",10,...
-    "ValidationData",{XValNormalized,YValNormalized},...
+    "ValidationData",{XTestData,YTestData},...
     "Plots","training-progress");
 if train
-    [net, traininfo] = trainNetwork(XTrainNormalized_cell,YTrainNormalized_cell,layers,opts);
+    [net, traininfo] = trainNetwork(XTrainData,YTrainData,layers,opts);
 end
 
 
@@ -181,12 +225,15 @@ end
 net = resetState(net);
 save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNrefNorm'), 'net')
 
+
 inspSig = 3;
+for inspSig=1:numResponses
 figure
 plot(Y(inspSig,:)'*stdVal(inspSig)+meanVal(inspSig))
 hold on
 plot(TY(inspSig,:)'*stdVal(inspSig)+meanVal(inspSig))
 hold off
+end
 
 
 
