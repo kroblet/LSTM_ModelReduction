@@ -259,4 +259,8 @@ hws.assignin('rpmStd', stdTrain(3));
 hws.assignin('powerStd', stdTrain(4));
 hws.assignin('t3Std', stdTrain(5));
 
-hws.reload;
+
+hws.assignin('samplTime', resampleTimeStep);
+
+% hws.reload;
+% get_param(bdroot, 'modelworkspace');
