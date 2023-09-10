@@ -9,10 +9,17 @@ simStopTimeLong = 1000; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-shaftSpeedStates = {{[4e3:5e2:1.1e4],simStopTimeShort},
-                    % {[ones(1,4).*4.2e3],simStopTimeShort},                       
-                    {[4.2e3:5e2:1.2e4],simStopTimeShort},
-                    {[4.5e3:5e2:1.2e4], simStopTimeShort},
+shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
+                    % {[ones(1,4).*4.2e3],simStopTimeShort}, 
+                    % new additions
+                    % {[[4e3:1e3:8e3] [8e3:-1e3:4e3]] ,simStopTimeShort},
+                    % {[[5e3:1e3:9e3] [9e3:-1e3:5e3]] ,simStopTimeShort},
+                    % {[[6e3:1e3:10e3] [10e3:-1e3:6e3]] ,simStopTimeShort},
+                    % {[[7e3:1e3:11e3] [11e3:-1e3:7e3]] ,simStopTimeShort},
+
+                    % end of new additions
+                    {[4.2e3:1e3:1.2e4],simStopTimeShort},
+                    {[4.5e3:1e3:1.2e4], simStopTimeShort},
                     % {[ones(1,4).*4.8e3],simStopTimeShort}, 
                     % {[4.8e3:2e3:1.2e4], simStopTimeShort}
                     };
@@ -55,7 +62,7 @@ save(fullfile(simOutDir,'simOuts'),'out')
 out = removeSimOutWithErrors(out);
 
 %% Resample and configure data for trainning
-resampleTimeStep = 1; % resample time step in (s)
+resampleTimeStep = 0.1; % resample time step in (s)
 scaleFactor = 1; % scale the input data
 removeInitEffect = 1;
 trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor,removeInitEffect); 
@@ -108,7 +115,7 @@ chunksize = 500;
 numFeatures = size(XTrainNormalized,1);
 [XTrainNormalized_cell, YTrainNormalized_cell] = helper.setupData(XTrainNormalized, YTrainNormalized, chunksize, numFeatures);
 
-%% Inspect resampled data
+% %% Inspect resampled data
 signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
@@ -133,7 +140,7 @@ end
 % Normalize test scenarios
 for iy=1:size(dataTest,2)
     normValSep = [];
-    for ix=1:size(XTrainAux,1)
+    for ix=1:size(dataTest{iy},1)
         normValSep(ix,:) = normalize(dataTest{iy}(ix,:),meanVal(ix), stdVal(ix));
     end
     dataValNorm{iy} = normValSep;
@@ -167,7 +174,7 @@ YTestData = TTestSep;
 %% LSTM Architecture - Normalized
 layers = [
     sequenceInputLayer(numFeatures,"Name","input")
-    lstmLayer(numHiddenUnits,"Name","lstm",'OutputMode','sequence')
+    lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
     reluLayer("Name","relu")
@@ -195,7 +202,7 @@ end
 results = predict(net,XTrainNormalized,SequencePaddingDirection="left");
 
 %% Save NN architecture
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionTrial','braytonLSTMNetThermoNorm'), 'net')
 
 %% Inspect NN response
 dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
@@ -205,8 +212,8 @@ std(dev{1})
 
 
 %% Open loop prediction - Update States
-X = XValNormalized;
-TY = YValNormalized;
+X = XTestSep{2};
+TY = TTestSep{2};
 
 net = resetState(net);
 offset = 1;
@@ -235,148 +242,21 @@ plot(TY(inspSig,:)'*stdVal(inspSig)+meanVal(inspSig))
 hold off
 end
 
+%% Set normalization properties
+open_system('brayton_cycle_LSTM_ROM')
 
+hws = get_param(bdroot, 'modelworkspace');
 
+hws.assignin('RPM_refMean', meanTrain(1));
+hws.assignin('phiMean', meanTrain(2));
+hws.assignin('rpmMean', meanTrain(3));
+hws.assignin('powerMean', meanTrain(4));
+hws.assignin('t3Mean', meanTrain(5));
 
+hws.assignin('RPM_refStd', stdTrain(1));
+hws.assignin('phiStd', stdTrain(2));
+hws.assignin('rpmStd', stdTrain(3));
+hws.assignin('powerStd', stdTrain(4));
+hws.assignin('t3Std', stdTrain(5));
 
-%% LSTM Architecture - Scaled
-layers = [
-    sequenceInputLayer(sigNumIn,Normalization="rescale-zero-one")
-    fullyConnectedLayer(200)
-    reluLayer
-    lstmLayer(200)
-    reluLayer
-    dropoutLayer
-    fullyConnectedLayer(sigNumOut)
-    regressionLayer];
-
-
-layers = [
-    sequenceInputLayer(sigNumIn,"Name","input")
-    lstmLayer(numHiddenUnits,"Name","lstm")
-    dropoutLayer(dropoutProbability,"Name","drop")
-    fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
-    reluLayer("Name","relu")
-    fullyConnectedLayer(sigNumOut,"Name","fc_2")
-    regressionLayer("Name","regressionoutput")
-    ];
-
-
-%% Partition trainning data
-trainPercentage = 0.8; % the percentage of the data that they will be used for training
-                       % the rest will be used for test
-
-[dataTrain, dataTest] = trainPartitioning(trainData, trainPercentage);
-
-%% Preprocess
-[XTrain, TTrain] = preprocessTrainData(dataTrain, outStartIdx);
-[XTest, TTest] = preprocessTrainData(dataTest, outStartIdx);
-
-%% Inspect Train Data
-visualizeTrainData(XTrain(:),signalNames, 'Train Data')
-
-%% Inspect Test Data
-visualizeTrainData(XTest(:),signalNames, 'Test Data')
-
-%% Train LSTM Network
-options = trainingOptions("adam", ...
-    MaxEpochs=5000, ...
-    GradientThreshold=1, ...
-    MiniBatchSize=20, ...
-    InitialLearnRate=1e-3, ...
-    LearnRateSchedule="piecewise", ...
-    LearnRateDropPeriod=1.5e3, ...
-    LearnRateDropFactor=0.5, ...
-    L2Regularization = 0.0001, ...
-    Verbose=0, ...
-    Plots="training-progress",...
-    ExecutionEnvironment='gpu', ...
-    ValidationData={XTest,TTest});
-    
-if train
-    net = trainNetwork(XTrain,TTrain,layers,options);
-end
-
-%% Check response
-results = predict(net,XTrain,SequencePaddingDirection="left");
-
-%% Save NN architecture
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermo'), 'net')
-
-%% Inspect NN response
-dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
-mean(dev{1})
-std(dev{1})
-
-
-
-%% Open loop prediction - Update States
-X = XTest{1};
-TY = TTest{1};
-
-net = resetState(net);
-offset = 1;
-[net,~] = predictAndUpdateState(net,X(:,1:offset));
-
-numTimeSteps = size(X,2);
-numPredictionTimeSteps = numTimeSteps - offset;
-Y = zeros(sigNumOut,numPredictionTimeSteps);
-
-
-for t = 2:numPredictionTimeSteps
-    Xt = [X(1,t-1);Y(:,t-1)];
-    [net,Y(:,t)] = predictAndUpdateState(net,Xt);
-end
-
-net = resetState(net);
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
-
-figure
-plot(Y')
-
-% Quick inspect
-hold on 
-plot(TY')
-hold off
-
-%% Simulate ROM model
-modelROM = 'brayton_cycle_LSTM_ROM';
-clearvars simInROM
-scenarioIdx = 9;
-testScenario = scenario{scenarioIdx};  
-simInROM = Simulink.SimulationInput(modelROM);
-
-% Initialize compressor's RPM with respect to the Simulation scenarios
-rpm0 = testScenario.shaftSpeedRef{1}.Values.Data(1);
-simInROM = setVariable(simInROM, 'rpm0', rpm0, ...
-    'Workspace', modelName);  
-simInROM = setVariable(simInROM, 'rpm_setpoint', testScenario.shaftSpeedRef{1}.Values.Data', ...
-    'Workspace', modelName);    
-simInROM = setVariable(simInROM,'time_setpoint', testScenario.shaftSpeedRef{1}.Values.Time', ...
-    'Workspace', modelName);
-
-%% Simulate ROM
-outROM = sim(simInROM);
-
-%% Compare ROM with initial model
-import matlab.unittest.TestCase
-import Simulink.sdi.constraints.MatchesSignal
-import Simulink.sdi.constraints.MatchesSignalOptions
-% Create a test case:
-testCase = TestCase.forInteractiveUse;    
-
-% Set accepted tolerance
-relTol = 1e-1;
-
-% Map log signals
-dic = {};
-dic{1} = 2;
-dic{2} = 1;
-dic{3} = 4;
-
-% Compare different signals between ROM LSTM model and original model.
-for ix=1:outROM.logsout.numElements-1
-        testCase.verifyThat(outROM.logsout{ix},MatchesSignal(out(scenarioIdx).logsout{dic{ix}},'RelTol',1e-4))
-end
-
-
+hws.reload;

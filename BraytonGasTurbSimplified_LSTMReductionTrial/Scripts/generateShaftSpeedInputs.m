@@ -16,7 +16,8 @@ end
     generateStairInputs(scenarioDir, shaftSpeeds, time, idx);
     
     % Decreased speed Simulation scenarios
+if strcmp(mode,'all') || strcmp(mode,'descent')
     generateStairInputs(scenarioDir, fliplr(shaftSpeeds), time, idx);
-
+end
 end
 
