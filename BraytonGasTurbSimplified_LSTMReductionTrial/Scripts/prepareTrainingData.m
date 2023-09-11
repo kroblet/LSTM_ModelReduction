@@ -34,7 +34,9 @@ for ix =1:caseNum
     % p3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.P.series.values;
     % 
     % % temperature/ pressure at thermodynamic stage 4 - APU input
-    % t4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.T.series.values;
+    t4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.T.series.values;
+    t4 = t4(removeInit:end-removeInitEffect);
+
     % p4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.P.series.values;    
     % 
     % % temperature/ pressure at thermodynamic stage 5 - APU output
@@ -55,7 +57,7 @@ for ix =1:caseNum
     % t1_res = interp1(time, t1, resTime);
     % t2_res = interp1(time, t2, resTime);
     t3_res = interp1(time, t3, resTime);
-    % t4_res = interp1(time, t4, resTime);
+    t4_res = interp1(time, t4, resTime);
     % t5_res = interp1(time, t5, resTime);
     % 
     % p1_res = interp1(time, p1, resTime);
@@ -67,7 +69,9 @@ for ix =1:caseNum
 
     % minimum data
     data{ix} = [RPMref_res./scaleFactor; phi_res./scaleFactor;...
-        compRPM_res./scaleFactor; power_res./scaleFactor; t3_res./scaleFactor
+        compRPM_res./scaleFactor; power_res./scaleFactor; 
+        t3_res./scaleFactor;
+        t4_res./scaleFactor
         ];
 end
 end

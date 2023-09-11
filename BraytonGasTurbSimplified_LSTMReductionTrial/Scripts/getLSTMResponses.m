@@ -1,9 +1,9 @@
-function results = getLSTMResponses(TX, TY, net)
+function results = getLSTMResponses(TX, VY, net)
 
 numCases = size(TX,2);
 for idx=1:numCases
     X = TX{idx};
-    TY = TY{idx};
+    TY = VY{idx};
     
     net = resetState(net);
     offset = 1;
@@ -11,7 +11,7 @@ for idx=1:numCases
     
     numTimeSteps = size(X,2);
     numPredictionTimeSteps = numTimeSteps - offset;
-    Y = zeros(sigNumOut,numPredictionTimeSteps);
+    Y = zeros(size(TY,1),numPredictionTimeSteps);
     
     
     for t = 2:numPredictionTimeSteps
