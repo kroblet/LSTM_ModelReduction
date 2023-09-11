@@ -82,8 +82,8 @@ for ix =1:caseNum
         t4_res./scaleFactor;
         % p2_res./scaleFactor;
         p3_res./scaleFactor;
-        p4_res./scaleFactor;
-
+        % p4_res./scaleFactor;
+        globEff_res./scaleFactor;
         % surgeMargin_res;
 
         ];
