@@ -1,4 +1,4 @@
-function data = prepareTrainingData(out,sampleStep, scaleFactor)
+function data = prepareTrainingData(out,sampleStep,scaleFactor)
 %PREPARETRAININGDATA takes as input the Simulink.SimulationOutputs and
 %returns a cell array with the trainning inputs and outputs
 
