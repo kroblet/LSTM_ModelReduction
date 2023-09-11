@@ -4,27 +4,27 @@ scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionT
 simOutDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionTrial', 'SimulationOutput');
 modelName = 'brayton_cycle_lstm_simplified';
 simStopTimeShort = 300; % Simulation stop time in s
-simStopTimeLong = 1000; % Simulation stop time in s
+simStopTimeLong = 500; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-shaftSpeedStates = {{[4e3:1e3:1e4],simStopTimeShort},
+shaftSpeedStates = {{[4e3:1e3:1e4],simStopTimeLong},
                     % {[ones(1,4).*4.2e3],simStopTimeShort}, 
                     % new additions
                     {[[4e3:1e3:8e3] [8e3:-1e3:4e3]] ,simStopTimeShort},
                     {[[5e3:1e3:9e3] [9e3:-1e3:5e3]] ,simStopTimeShort},
                     {[[6e3:1e3:10e3] [10e3:-1e3:6e3]] ,simStopTimeShort},
-                    {[[7e3:1e3:10e3] [11e3:-1e3:7e3]] ,simStopTimeShort},
-                    {[5e3:0.5e3:1e4], simStopTimeShort},
-                    {[6e3:0.5e3:1e4], simStopTimeShort},
-                    {[7e3:0.5e3:1e4], simStopTimeShort},
-                    {[8e3:0.5e3:1e4], simStopTimeShort},
-                    {[9e3:0.5e3:1e4], simStopTimeShort},
+                    {[[7e3:1e3:12e3] [12e3:-1e3:7e3]] ,simStopTimeShort},
+                    {[5e3:0.5e3:1.1e4], simStopTimeShort},
+                    {[6e3:0.5e3:1.1e4], simStopTimeShort},
+                    {[7e3:0.5e3:1.1e4], simStopTimeShort},
+                    {[8e3:0.5e3:1.1e4], simStopTimeShort},
+                    {[9e3:0.5e3:1.1e4], simStopTimeShort},
 
                     % end of new additions
-                    {[4.2e3:1e3:1e4],simStopTimeShort},
-                    {[4.5e3:1e3:1e4], simStopTimeShort},
+                    {[4.2e3:1e3:1.2e4],simStopTimeShort},
+                    {[4.5e3:1e3:1.2e4], simStopTimeShort},
                     % {[ones(1,4).*4.8e3],simStopTimeShort}, 
                     % {[4.8e3:2e3:1.2e4], simStopTimeShort}
                     };
@@ -207,7 +207,7 @@ end
 results = predict(net,XTrainNormalized,SequencePaddingDirection="left");
 
 %% Save NN architecture
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionTrial','braytonLSTMNetThermoNorm'), 'net')
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReductionTrial','braytonLSTMNetThermoNormLong'), 'net')
 
 %% Inspect NN response
 dev = compareResponses(TTest, results, signalNames(outStartIdx:end), 'NN Response');
