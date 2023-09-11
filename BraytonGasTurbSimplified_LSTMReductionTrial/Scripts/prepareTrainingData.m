@@ -43,8 +43,9 @@ for ix =1:caseNum
     t4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.T.series.values;
     t4 = t4(removeInit:end-removeInitEffect);
 
-    % p4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.P.series.values;    
-    % 
+    p4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.P.series.values;    
+    p4 = p4(removeInit:end-removeInitEffect);
+
     % % temperature/ pressure at thermodynamic stage 5 - APU output
     t5 = out(ix).simlog_sscfluids_brayton_cycle.Ts_5.Pressure_Temperature_Sensor_G.T.series.values;
     % p5 = out(ix).simlog_sscfluids_brayton_cycle.Ts_5.Pressure_Temperature_Sensor_G.P.series.values;  
@@ -69,7 +70,7 @@ for ix =1:caseNum
     % p1_res = interp1(time, p1, resTime);
     p2_res = interp1(time, p2, resTime);
     p3_res = interp1(time, p3, resTime);
-    % p4_res = interp1(time, p4, resTime);
+    p4_res = interp1(time, p4, resTime);
     % p5_res = interp1(time, p5, resTime);    
 
 
@@ -81,7 +82,10 @@ for ix =1:caseNum
         t4_res./scaleFactor;
         % p2_res./scaleFactor;
         p3_res./scaleFactor;
-        surgeMargin_res;
+        p4_res./scaleFactor;
+
+        % surgeMargin_res;
+
         ];
 end
 end
