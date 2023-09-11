@@ -1,4 +1,4 @@
-function data = prepareTrainingData(out,sampleStep)
+function data = prepareTrainingData(out,sampleStep, scaleFactor)
 %PREPARETRAININGDATA takes as input the Simulink.SimulationOutputs and
 %returns a cell array with the trainning inputs and outputs
 
@@ -59,7 +59,8 @@ for ix =1:caseNum
 
 
     % minimum data
-    data{ix} = [phi_res./1000; compRPM_res./1000; power_res./1000 ;t3_res./1000];
+    data{ix} = [RPMref_res./scaleFactor; phi_res./scaleFactor;...
+        compRPM_res./scaleFactor; power_res./scaleFactor; t3_res./scaleFactor];
 end
 end
 

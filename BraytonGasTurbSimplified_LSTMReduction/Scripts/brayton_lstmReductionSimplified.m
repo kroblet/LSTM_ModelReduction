@@ -10,12 +10,12 @@ train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
 shaftSpeedStates = {{[4e3:1e3:1.1e4],simStopTimeShort},
-                    {[ones(1,4).*4.2e3],simStopTimeShort},                       
+                    % {[ones(1,4).*4.2e3],simStopTimeShort},                       
                     {[4.2e3:1e3:1.2e4],simStopTimeShort},
                     {[4.5e3:1e3:1.2e4], simStopTimeShort},
-                    {[ones(1,4).*4.8e3],simStopTimeShort}, 
-                    {[4.8e3:2e3:1.2e4], simStopTimeShort}};
-
+                    % {[ones(1,4).*4.8e3],simStopTimeShort} 
+                    % {[4.8e3:2e3:1.2e4], simStopTimeShort}
+                    }
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
     shaftSpeedStates{ix}{2}, 'stairOnly', ix)
@@ -35,12 +35,9 @@ for ix=1:numCases
 
     simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
     % Initialize compressor's RPM with respect to the Simulation scenarios
-
     rpm0 = aux{2};
     simIn(ix) = setVariable(simIn(ix), 'rpm0', str2num(rpm0), ...
         'Workspace', modelName);  
-    simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
-        'Workspace', modelName);
     simIn(ix) = setVariable(simIn(ix), 'rpm_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
         'Workspace', modelName);    
     simIn(ix) = setVariable(simIn(ix),'time_setpoint', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
@@ -54,28 +51,20 @@ out = parsim(simIn);
 save(fullfile(simOutDir,'simOuts'),'out') 
 
 %% Remove simulation outputs with errors
-idx = 1;
-aux = length(out);
-while idx <= aux
-    if ~isempty(out(idx).ErrorMessage)
-        out(idx) = [];
-    else
-        idx=idx+1;
-    end
-    aux = length(out);
-end
+out = removeSimOutWithErrors(out);
 
-%% Configure trainning data format
-resampleTimeStep = 1;
-trainData = prepareTrainingData(out,resampleTimeStep);
+%% Resample and configure data for trainning
+resampleTimeStep = 1; % resample time step in (s)
+scaleFactor = 1000; % scale the input data
+trainData = prepareTrainingData(out,resampleTimeStep, scaleFactor); 
 
 %% Inspect resampled data
-signalNames = {'Phi','N', 'MechPower', 'T3'};
+signalNames = {'Nref','Phi','N', 'MechPower', 'T3'};
 visualizeTrainData(trainData(:),signalNames, 'Resampled Data')
 
 %% Inputs outputs
-sigNumIn = 4;
-sigNumOut = 3;
+sigNumIn = 5;
+sigNumOut = 4;
 outStartIdx = 2;
 
 %% LSTM Architecture
@@ -84,7 +73,6 @@ layers = [
     fullyConnectedLayer(200)
     reluLayer
     lstmLayer(200)
-    % lstmLayer(100)
     reluLayer
     dropoutLayer
     fullyConnectedLayer(sigNumOut)
@@ -110,7 +98,7 @@ visualizeTrainData(XTest(:),signalNames, 'Test Data')
 options = trainingOptions("adam", ...
     MaxEpochs=5000, ...
     GradientThreshold=1, ...
-    MiniBatchSize=8, ...
+    MiniBatchSize=20, ...
     InitialLearnRate=0.3e-1, ...
     LearnRateSchedule="piecewise", ...
     LearnRateDropPeriod=1.5e3, ...
@@ -148,16 +136,61 @@ numTimeSteps = size(X,2);
 numPredictionTimeSteps = numTimeSteps - offset;
 Y = zeros(sigNumOut,numPredictionTimeSteps);
 
-for t = 1:numPredictionTimeSteps
-    Xt = X(:,offset+t);
+
+for t = 2:numPredictionTimeSteps
+    Xt = [X(1,t-1);Y(:,t-1)];
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
 end
 
-save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithT3'), 'net')
-
+net = resetState(net);
+save(fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction','braytonLSTMNetThermoStateUpdateWithNref'), 'net')
 
 figure
 plot(Y')
 
+% Quick inspect
 hold on 
 plot(TY')
+hold off
+
+%% Simulate ROM model
+modelROM = 'brayton_cycle_LSTM_ROM';
+clearvars simInROM
+scenarioIdx = 9;
+testScenario = scenario{scenarioIdx};  
+simInROM = Simulink.SimulationInput(modelROM);
+
+% Initialize compressor's RPM with respect to the Simulation scenarios
+rpm0 = testScenario.shaftSpeedRef{1}.Values.Data(1);
+simInROM = setVariable(simInROM, 'rpm0', rpm0, ...
+    'Workspace', modelName);  
+simInROM = setVariable(simInROM, 'rpm_setpoint', testScenario.shaftSpeedRef{1}.Values.Data', ...
+    'Workspace', modelName);    
+simInROM = setVariable(simInROM,'time_setpoint', testScenario.shaftSpeedRef{1}.Values.Time', ...
+    'Workspace', modelName);
+
+%% Simulate ROM
+outROM = sim(simInROM);
+
+%% Compare ROM with initial model
+import matlab.unittest.TestCase
+import Simulink.sdi.constraints.MatchesSignal
+import Simulink.sdi.constraints.MatchesSignalOptions
+% Create a test case:
+testCase = TestCase.forInteractiveUse;    
+
+% Set accepted tolerance
+relTol = 1e-1;
+
+% Map log signals
+dic = {};
+dic{1} = 2;
+dic{2} = 1;
+dic{3} = 4;
+
+% Compare different signals between ROM LSTM model and original model.
+for ix=1:outROM.logsout.numElements-1
+        testCase.verifyThat(outROM.logsout{ix},MatchesSignal(out(scenarioIdx).logsout{dic{ix}},'RelTol',1e-4))
+end
+
+

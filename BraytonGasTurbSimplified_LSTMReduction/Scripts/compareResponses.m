@@ -39,10 +39,11 @@ for ix=1:signalNum
     grid(ax{ix}, 'on')
     grid(axEr{ix}, 'on')
     hold(ax{ix},'off')
+    title(ax{ix}, figTitle);
+    title(axEr{ix},'Deviation from reference')
+
 end
-title(ax{1}, figTitle);
 legend(ax{1},lg);
-title(axEr{1},'Deviation from reference')
 end
 
 
