@@ -25,13 +25,19 @@ for ix =1:caseNum
     % p1 = out(ix).simlog_sscfluids_brayton_cycle.Ts_1.Pressure_Temperature_Sensor_G.P.series.values;
     % 
     % % temperature/ pressure at thermodynamic stage 2 - Burner input
-    % t2 = out(ix).simlog_sscfluids_brayton_cycle.Ts_2.Pressure_Temperature_Sensor_G.T.series.values;
-    % p2 = out(ix).simlog_sscfluids_brayton_cycle.Ts_2.Pressure_Temperature_Sensor_G.P.series.values;
+    t2 = out(ix).simlog_sscfluids_brayton_cycle.Ts_2.Pressure_Temperature_Sensor_G.T.series.values;
+    t2 = t2(removeInit:end-removeInitEffect);
+
+    p2 = out(ix).simlog_sscfluids_brayton_cycle.Ts_2.Pressure_Temperature_Sensor_G.P.series.values;
+    p2 = p2(removeInit:end-removeInitEffect);
+
     % 
     % % temperature/ pressure at thermodynamic stage 3 - Turbine input   
     t3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.T.series.values;
     t3 = t3(removeInit:end-removeInitEffect);
-    % p3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.P.series.values;
+    p3 = out(ix).simlog_sscfluids_brayton_cycle.Ts_3.Pressure_Temperature_Sensor_G.P.series.values;
+    p3 = p3(removeInit:end-removeInitEffect);
+
     % 
     % % temperature/ pressure at thermodynamic stage 4 - APU input
     t4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.T.series.values;
@@ -40,7 +46,7 @@ for ix =1:caseNum
     % p4 = out(ix).simlog_sscfluids_brayton_cycle.Ts_4.Pressure_Temperature_Sensor_G.P.series.values;    
     % 
     % % temperature/ pressure at thermodynamic stage 5 - APU output
-    % t5 = out(ix).simlog_sscfluids_brayton_cycle.Ts_5.Pressure_Temperature_Sensor_G.T.series.values;
+    t5 = out(ix).simlog_sscfluids_brayton_cycle.Ts_5.Pressure_Temperature_Sensor_G.T.series.values;
     % p5 = out(ix).simlog_sscfluids_brayton_cycle.Ts_5.Pressure_Temperature_Sensor_G.P.series.values;  
 
     % resample actuation signals
@@ -55,14 +61,14 @@ for ix =1:caseNum
 
     % resample physical signals
     % t1_res = interp1(time, t1, resTime);
-    % t2_res = interp1(time, t2, resTime);
+    t2_res = interp1(time, t2, resTime);
     t3_res = interp1(time, t3, resTime);
     t4_res = interp1(time, t4, resTime);
     % t5_res = interp1(time, t5, resTime);
     % 
     % p1_res = interp1(time, p1, resTime);
-    % p2_res = interp1(time, p2, resTime);
-    % p3_res = interp1(time, p3, resTime);
+    p2_res = interp1(time, p2, resTime);
+    p3_res = interp1(time, p3, resTime);
     % p4_res = interp1(time, p4, resTime);
     % p5_res = interp1(time, p5, resTime);    
 
@@ -70,8 +76,11 @@ for ix =1:caseNum
     % minimum data
     data{ix} = [RPMref_res./scaleFactor; phi_res./scaleFactor;...
         compRPM_res./scaleFactor; power_res./scaleFactor; 
+        t2_res./scaleFactor;
         t3_res./scaleFactor;
-        t4_res./scaleFactor
+        t4_res./scaleFactor;
+        p2_res./scaleFactor;
+        p3_res./scaleFactor;
         ];
 end
 end
