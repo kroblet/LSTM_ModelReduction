@@ -80,13 +80,13 @@ for ix =1:caseNum
         compRPM_res./scaleFactor; power_res./scaleFactor; 
         t2_res./scaleFactor;
         t3_res./scaleFactor;
-        t4_res./scaleFactor;
+        % t4_res./scaleFactor;
         % p2_res./scaleFactor;
         p3_res./scaleFactor;
         % p4_res./scaleFactor;
         % globEff_res./scaleFactor;
-        surgeMargin_res;
-        vn_res./scaleFactor;
+        % surgeMargin_res;
+        % vn_res./scaleFactor;
         ];
 end
 end
