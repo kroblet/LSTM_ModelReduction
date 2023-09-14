@@ -76,13 +76,15 @@ for ix =1:caseNum
 
 
     % minimum data
-    data{ix} = [RPMref_res./scaleFactor; phi_res./scaleFactor;...
-        compRPM_res./scaleFactor; power_res./scaleFactor; 
-        t2_res./scaleFactor;
-        t3_res./scaleFactor;
+    data{ix} = [RPMref_res./scaleFactor; 
+        phi_res./scaleFactor;...
+        compRPM_res./scaleFactor; 
+        power_res./scaleFactor; 
+        % t2_res./scaleFactor;
+        % t3_res./scaleFactor;
         % t4_res./scaleFactor;
         % p2_res./scaleFactor;
-        p3_res./scaleFactor;
+        % p3_res./scaleFactor;
         % p4_res./scaleFactor;
         % globEff_res./scaleFactor;
         % surgeMargin_res;
