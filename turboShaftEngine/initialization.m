@@ -1,7 +1,7 @@
 % initial conditions
 initConditions.Temperature = 288.15; % K
 initConditions.Pressure = 0.101325; % MPa
-initConditions.rpm = 12000; % initial shaft speed
+initConditions.rpm = 5000; % initial shaft speed
 
 % burner
 burner.length = 0.5; % m
@@ -42,8 +42,8 @@ inlet.crossArea = compressor.inletArea;
 exhaust.crossArea = turbine.outletArea;
 
 % shaft
-shaft.inertia = 0.01 ; % kg*m2
-
+shaft.inertia = 0.01; % kg*m2
+shaft.damping = 1e-5; % N*m*s*rad 
  
 
 
