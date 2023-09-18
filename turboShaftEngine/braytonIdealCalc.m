@@ -131,6 +131,8 @@ ylabel(axPT,"Pressure (Pa)")
 
 disp(['Compressor actual PR: ', num2str(p2/p1)])
 disp(['Turbine actual PR: ', num2str(p3/p4)])
+disp(['Free turbine actual PR: ', num2str(p4/p5)])
+
 disp(['TET (K): ', num2str(t3)])
 
 %% Investigate outlet conditions
