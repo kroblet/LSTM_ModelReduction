@@ -29,6 +29,8 @@ T4 = isentropicTout(T1, PRturb, gamma)
 Q = mdot*cp*(T3-T2);
 
 %% Check turbine results
+initialization
+
 modelName = 'turboShaftGasTurbine.slx';
 load_system(modelName);
 
@@ -64,8 +66,72 @@ t4 = t4_timeseries(end);
 
 t = [t1, t2, t3, t4];
 
-% Visulaize Brayton cycle
+% Get pressures
+p1_timeseries = engineOut.simlog.s1P1T1.Pressure_Temperature_Sensor_G.Pa.series.values;
+p1 = p1_timeseries(end);
+
+p2_timeseries = engineOut.simlog.s2P2T2.Pressure_Temperature_Sensor_G.Pa.series.values;
+p2 = p2_timeseries(end);
+
+p3_timeseries = engineOut.simlog.s3P3T3.Pressure_Temperature_Sensor_G.Pa.series.values;
+p3 = p3_timeseries(end);
+
+p4_timeseries = engineOut.simlog.s4P4T4.Pressure_Temperature_Sensor_G.Pa.series.values;
+p4 = p4_timeseries(end);
+
+p = [p1, p2, p3, p4];
+
+
+% Get specific volume
+v1_timeseries = 1/engineOut.simlog.s1P1T1.Thermodynamic_Properties_Sensor_G.RHO.series.values;
+v1 = v1_timeseries(end);
+
+v2_timeseries = 1/engineOut.simlog.s2P2T2.Thermodynamic_Properties_Sensor_G.RHO.series.values;
+v2 = v2_timeseries(end);
+
+v3_timeseries = 1/engineOut.simlog.s3P3T3.Thermodynamic_Properties_Sensor_G.RHO.series.values;
+v3 = v3_timeseries(end);
+
+v4_timeseries = 1/engineOut.simlog.s4P4T4.Thermodynamic_Properties_Sensor_G.RHO.series.values;
+v4 = v4_timeseries(end);
+
+v = [v1, v2, v3, v4];
+
+
+% Visualize Brayton cycle
 figure
-plot(s,t)
-xlabel("Entropy J/(kgK)")
-ylabel("Temperature (K)")
+axTS = subplot (3,1,1);
+axPV = subplot (3,1,2);
+axPT = subplot (3,1,3);
+plot(axTS, s,t)
+xlabel(axTS, "Entropy J/(kgK)")
+ylabel(axTS,"Temperature (K)")
+
+plot(axPV, v, p)
+xlabel(axPV, "Specific volume (m3/kg)")
+ylabel(axPV,"Pressure (Pa)")
+
+plot(axPT, t, p)
+xlabel(axPT, "Temperature (K)")
+ylabel(axPT,"Pressure (Pa)")
+
+% Pressure ratios
+
+disp(['Compressor actual PR: ', num2str(p2/p1)])
+disp(['Turbine actual PR: ', num2str(p3/p4)])
+disp(['TET (K): ', num2str(t3)])
+
+%% Investigate outlet conditions
+
+cair = sqrt(1+t4/273.15)*331.3;
+maux = engineOut.simlog.Turbine_G.mdot_A.series.values;
+mdot4 = maux(end);
+rhoaux = engineOut.simlog.s4P4T4.Thermodynamic_Properties_Sensor_G.RHO.series.values;
+rho4 = rhoaux(end);
+
+u = mdot4/rho4/turbine.outletArea;
+
+M4 = u/cair
+
+%% 
+
