@@ -49,7 +49,10 @@ s3 = s3_timeseries(end);
 s4_timeseries = engineOut.simlog.s4P4T4.Thermodynamic_Properties_Sensor_G.S.series.values;
 s4 = s4_timeseries(end);
 
-s = [s1, s2, s3, s4];
+s5_timeseries = engineOut.simlog.s5P5T5.Thermodynamic_Properties_Sensor_G.S.series.values;
+s5 = s5_timeseries(end);
+
+s = [s1, s2, s3, s4, s5];
 
 % Get temperatures
 t1_timeseries = engineOut.simlog.s1P1T1.Pressure_Temperature_Sensor_G.T.series.values;
@@ -64,7 +67,10 @@ t3 = t3_timeseries(end);
 t4_timeseries = engineOut.simlog.s4P4T4.Pressure_Temperature_Sensor_G.T.series.values;
 t4 = t4_timeseries(end);
 
-t = [t1, t2, t3, t4];
+t5_timeseries = engineOut.simlog.s5P5T5.Pressure_Temperature_Sensor_G.T.series.values;
+t5 = t5_timeseries(end);
+
+t = [t1, t2, t3, t4, t5];
 
 % Get pressures
 p1_timeseries = engineOut.simlog.s1P1T1.Pressure_Temperature_Sensor_G.Pa.series.values;
@@ -79,7 +85,10 @@ p3 = p3_timeseries(end);
 p4_timeseries = engineOut.simlog.s4P4T4.Pressure_Temperature_Sensor_G.Pa.series.values;
 p4 = p4_timeseries(end);
 
-p = [p1, p2, p3, p4];
+p5_timeseries = engineOut.simlog.s5P5T5.Pressure_Temperature_Sensor_G.Pa.series.values;
+p5 = p5_timeseries(end);
+
+p = [p1, p2, p3, p4, p5];
 
 
 % Get specific volume
@@ -95,7 +104,10 @@ v3 = v3_timeseries(end);
 v4_timeseries = 1/engineOut.simlog.s4P4T4.Thermodynamic_Properties_Sensor_G.RHO.series.values;
 v4 = v4_timeseries(end);
 
-v = [v1, v2, v3, v4];
+v5_timeseries = 1/engineOut.simlog.s5P5T5.Thermodynamic_Properties_Sensor_G.RHO.series.values;
+v5 = v5_timeseries(end);
+
+v = [v1, v2, v3, v4, v5];
 
 
 % Visualize Brayton cycle
