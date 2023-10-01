@@ -10,13 +10,10 @@ inlet.crossArea = 0.3;
 exhaust.crossArea = 1*inlet.crossArea;
 
 % compressor
-compressor.areaRatio = 2; % fraction between inlet and outlet area
+compressor.areaRatio = 1; % fraction between inlet and outlet area
 compressor.rpmDesign = 10000; % rpm
 compressor.PR = 17.5;  % pressure ratio
 compressor.massFlowDesign = 4; % kg/s
-compressor.isentropicEffMax = 0.887; % maximum isentropic efficiency
-compressor.isentropicEffMin = 0.5; % minimum isentropic efficiency
-compressor.massFlowMaxEff = 3; % maximum mass flow in max efficiency kg/s
 compressor.PRMaxEff = 4.5; % maximum PR in max efficiency 
 compressor.isentropicEfficiency = 0.85; % constant isentropic efficiency
 compressor.refPressure = initConditions.Pressure; % MPa
@@ -24,6 +21,11 @@ compressor.refTemperature = initConditions.Temperature; % K
 compressor.mechanicalEff = 0.99; % mechanical efficiency
 compressor.inletArea = inlet.crossArea; % inlet area m2
 compressor.outletArea = compressor.inletArea/compressor.areaRatio; % outlet area m2
+
+compressor.isentropicEffMax = 0.887; % maximum isentropic efficiency
+compressor.isentropicEffMin = 0.5; % minimum isentropic efficiency
+compressor.massFlowMaxEff = 3; % maximum mass flow in max efficiency kg/s
+
 % compressor.outletArea = 0.005; % outlet area m2
 
 % burner
@@ -38,11 +40,13 @@ turbine.areaRatio = 2; % fraction between inlet and outlet area
 turbine.PR = 4; % pressure ratio
 turbine.massFlowDesign = 4; % kg/s
 turbine.isentropicEfficiency = 0.85; % constant isentropic efficiency
+turbine.inletArea = burner.crossArea; % inlet area m2
+turbine.outletArea = turbine.areaRatio*turbine.inletArea; % outlet area m2
+
 turbine.refPressure = initConditions.Pressure; % MPa
 turbine.refTemperature = initConditions.Temperature; % K
 turbine.mechanicalEff = 0.99; % mechanical efficiency
-turbine.inletArea = burner.crossArea; % inlet area m2
-turbine.outletArea = turbine.areaRatio*turbine.inletArea; % outlet area m2
+
 
 % turbine FPT
 turbineFPT.PR = 3.4; % pressure ratio
