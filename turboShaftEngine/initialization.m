@@ -17,7 +17,7 @@ clear T a P rho nu;
 initConditions.rpm = 20000; % initial shaft speed
 
 % inlet - environment
-inlet.crossArea = 0.3;
+inlet.crossArea = 0.1;
 
 % exhaust - environment
 exhaust.crossArea = 1*inlet.crossArea;
