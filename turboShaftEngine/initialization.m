@@ -1,7 +1,20 @@
+
+
+
 % initial conditions
-initConditions.Temperature = 288.15; % K
-initConditions.Pressure = 0.101325; % MPa
-initConditions.rpm = 10000; % initial shaft speed
+height = 0;
+[T,a,P,rho,nu] = atmosisa(height);
+
+initConditions.Temperature = T; % K
+initConditions.Pressure = P; % Pa
+initConditions.rho = rho; % air density kg/m3
+initConditions.nu = nu; % kinematic viscocity m2/s
+initConditions.SounSpeed = a; % sound speed
+
+clear T a P rho nu;
+
+
+initConditions.rpm = 20000; % initial shaft speed
 
 % inlet - environment
 inlet.crossArea = 0.3;
