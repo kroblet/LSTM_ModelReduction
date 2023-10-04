@@ -2,7 +2,8 @@
 
 
 % initial conditions
-height = 0;
+height = 465;
+
 [T,a,P,rho,nu] = atmosisa(height);
 
 initConditions.Temperature = T; % K
@@ -14,7 +15,7 @@ initConditions.SounSpeed = a; % sound speed
 clear T a P rho nu;
 
 
-initConditions.rpm = 20000; % initial shaft speed
+initConditions.rpm = 44700; % initial shaft speed
 
 % inlet - environment
 inlet.crossArea = 0.1;
@@ -24,11 +25,11 @@ exhaust.crossArea = 1*inlet.crossArea;
 
 % compressor
 compressor.areaRatio = 1; % fraction between inlet and outlet area
-compressor.rpmDesign = 10000; % rpm
+compressor.rpmDesign = 44700; % rpm
 compressor.PR = 17.5;  % pressure ratio
-compressor.massFlowDesign = 4; % kg/s
+compressor.massFlowDesign = 4.6122; % kg/s
 compressor.PRMaxEff = 4.5; % maximum PR in max efficiency 
-compressor.isentropicEfficiency = 0.85; % constant isentropic efficiency
+compressor.isentropicEfficiency = 0.8210; % constant isentropic efficiency
 compressor.refPressure = initConditions.Pressure; % MPa
 compressor.refTemperature = initConditions.Temperature; % K
 compressor.mechanicalEff = 0.99; % mechanical efficiency
@@ -46,12 +47,19 @@ burner.length = 0.5; % m
 burner.crossArea = compressor.outletArea; % m2
 burner.diameter = 2*sqrt(burner.crossArea/pi); % m
 burner.hydrDiameter = burner.diameter; % cylindrical, same as diameter
-burner.initTemp = 900; % K
+burner.initTemp = 1479; % K
+burner.initPress = 1591629; % Pa
+burner.eff = 0.9850; % combustion efficiency
+burner.pressureloss = 0.04*initConditions.Pressure;
+burner.HHV = 43100; % Higher heating value kJ/kg
+burner.mfDesign = 0.1004; % design fuel flow kg/s
+burner.heatDesign = burner.eff*burner.mfDesign*burner.HHV; % heat required for the design point
+
 
 % turbine GGT
-turbine.areaRatio = 2; % fraction between inlet and outlet area
+turbine.areaRatio = 1; % fraction between inlet and outlet area
 turbine.PR = 4; % pressure ratio
-turbine.massFlowDesign = 4; % kg/s
+turbine.massFlowDesign = compressor.massFlowDesign; % kg/s
 turbine.isentropicEfficiency = 0.85; % constant isentropic efficiency
 turbine.inletArea = burner.crossArea; % inlet area m2
 turbine.outletArea = turbine.areaRatio*turbine.inletArea; % outlet area m2
@@ -63,13 +71,14 @@ turbine.mechanicalEff = 0.99; % mechanical efficiency
 
 % turbine FPT
 turbineFPT.PR = 3.4; % pressure ratio
-turbineFPT.massFlowDesign = 4; % kg/s
+turbineFPT.massFlowDesign = compressor.massFlowDesign; % kg/s
 turbineFPT.isentropicEfficiency = 0.85; % constant isentropic efficiency
 turbineFPT.refPressure = initConditions.Pressure; % MPa
 turbineFPT.refTemperature = initConditions.Temperature; % K
 turbineFPT.mechanicalEff = 0.99; % mechanical efficiency
 turbineFPT.inletArea = turbine.outletArea; % inlet area m2
 turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
+turbineFTP.RPMDesign = 20900; % design RPM for FTP 
 
 % shaft
 shaft.inertia = 1e-4; % kg*m2
