@@ -18,7 +18,7 @@ clear T a P rho nu;
 initConditions.rpm = 44700; % initial shaft speed
 
 % inlet - environment
-inlet.crossArea = 0.1;
+inlet.crossArea = 0.3;
 
 % exhaust - environment
 exhaust.crossArea = 1*inlet.crossArea;
@@ -70,7 +70,7 @@ turbine.mechanicalEff = 0.99; % mechanical efficiency
 
 
 % turbine FPT
-turbineFPT.PR = 3.4; % pressure ratio
+turbineFPT.PR = 4.3750; % pressure ratio
 turbineFPT.massFlowDesign = compressor.massFlowDesign; % kg/s
 turbineFPT.isentropicEfficiency = 0.85; % constant isentropic efficiency
 turbineFPT.refPressure = initConditions.Pressure; % MPa
@@ -79,11 +79,25 @@ turbineFPT.mechanicalEff = 0.99; % mechanical efficiency
 turbineFPT.inletArea = turbine.outletArea; % inlet area m2
 turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
 turbineFTP.RPMDesign = 20900; % design RPM for FTP 
+turbineFTR.RotorDamping = 10; % kg*m^2
 
-% shaft
+% shaft GGT
 shaft.inertia = 1e-4; % kg*m2
-shaft.damping = 1e-5; % N*m*s*rad 
- 
+shaft.damping = 1e-3; % N*m*s*rad 
+
+% shaft FTP
+shaftFTP.GearRatio = 80.5;
+
+% rotor
+rotor.mass = 907 ; % kg rotor mass estimate of UH-60A
+rotor.diameter = 8.178; % m
+rotor.bladeNum = 4; % number of rotor blades
+rotor.inertia2blades = ...
+    2*rotor.mass/rotor.bladeNum*rotor.diameter^2/12;
+rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
+rotor.powerCoeff = 0.43; % rotor's power coefficient
+rotor.thrustCoeff = 0.08; % rotor's torque coefficient
+
 
 
 
