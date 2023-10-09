@@ -14,7 +14,7 @@ clear T a P rho nu;
 initConditions.rpm = 44700; % initial shaft speed
 
 % inlet - environment
-inlet.crossArea = 0.3;
+inlet.crossArea = 0.08;
 
 % exhaust - environment
 exhaust.crossArea = 1*inlet.crossArea;
@@ -73,9 +73,9 @@ turbineFPT.refTemperature = initConditions.Temperature; % K
 turbineFPT.mechanicalEff = 0.99; % mechanical efficiency
 turbineFPT.inletArea = turbine.outletArea; % inlet area m2
 turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
-turbineFTP.RPMDesign = 20900; % design RPM for FTP 
-turbineFTP.RotorDamping = 10; % kg*m^2
-rotorDamping = 1; % kg*m^2
+turbineFPT.RPMDesign = 20900; % design RPM for FTP 
+turbineFPT.RotorDamping = 10; % kg*m^2
+rotorDamping = 1e-3; % kg*m^2
 
 % shaft GGT
 shaft.inertia = 1e-4; % kg*m2
@@ -94,7 +94,7 @@ rotor.inertia2blades = ...
 rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
 rotor.powerCoeff = 0.43; % rotor's power coefficient
 rotor.thrustCoeff = 0.08; % rotor's torque coefficient
-rotor.rpm = 238;
+rotor.rpm = 257;
 
 
 
