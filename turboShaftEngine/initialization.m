@@ -75,7 +75,7 @@ turbineFPT.inletArea = turbine.outletArea; % inlet area m2
 turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
 turbineFTP.RPMDesign = 20900; % design RPM for FTP 
 turbineFTP.RotorDamping = 10; % kg*m^2
-rotorDamping = 1e-3; % kg*m^2
+rotorDamping = 1; % kg*m^2
 
 % shaft GGT
 shaft.inertia = 1e-4; % kg*m2
