@@ -1,6 +1,6 @@
 % initial conditions
 height = 465;
-coreArea = 0.3;
+
 [T,a,P,rho,nu] = atmosisa(height);
 
 initConditions.Temperature = T; % K
@@ -18,6 +18,11 @@ inlet.crossArea = 0.08;
 
 % exhaust - environment
 exhaust.crossArea = 1*inlet.crossArea;
+
+% Global specs
+coreArea = 0.3;
+coreDiameter = 2*sqrt(coreArea/pi); % m
+coreHydrDiameter = coreDiameter; % cylindrical, same as diameter
 
 % compressor
 compressor.areaRatio = 1; % fraction between inlet and outlet area
