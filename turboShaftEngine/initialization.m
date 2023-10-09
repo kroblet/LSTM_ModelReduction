@@ -1,9 +1,6 @@
-
-
-
 % initial conditions
 height = 465;
-
+coreArea = 0.3;
 [T,a,P,rho,nu] = atmosisa(height);
 
 initConditions.Temperature = T; % K
@@ -13,7 +10,6 @@ initConditions.nu = nu; % kinematic viscocity m2/s
 initConditions.SounSpeed = a; % sound speed
 
 clear T a P rho nu;
-
 
 initConditions.rpm = 44700; % initial shaft speed
 
@@ -55,7 +51,6 @@ burner.HHV = 43100; % Higher heating value kJ/kg
 burner.mfDesign = 0.1004; % design fuel flow kg/s
 burner.heatDesign = burner.eff*burner.mfDesign*burner.HHV; % heat required for the design point
 
-
 % turbine GGT
 turbine.areaRatio = 1; % fraction between inlet and outlet area
 turbine.PR = 4; % pressure ratio
@@ -79,11 +74,13 @@ turbineFPT.mechanicalEff = 0.99; % mechanical efficiency
 turbineFPT.inletArea = turbine.outletArea; % inlet area m2
 turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
 turbineFTP.RPMDesign = 20900; % design RPM for FTP 
-turbineFTR.RotorDamping = 10; % kg*m^2
+turbineFTP.RotorDamping = 10; % kg*m^2
+rotorDamping = 1e-3; % kg*m^2
 
 % shaft GGT
 shaft.inertia = 1e-4; % kg*m2
 shaft.damping = 1e-3; % N*m*s*rad 
+shaftDamping = 1e-5; % N*m*s*rad 
 
 % shaft FTP
 shaftFTP.GearRatio = 80.5;
@@ -97,7 +94,7 @@ rotor.inertia2blades = ...
 rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
 rotor.powerCoeff = 0.43; % rotor's power coefficient
 rotor.thrustCoeff = 0.08; % rotor's torque coefficient
-
+rotor.rpm = 238;
 
 
 
