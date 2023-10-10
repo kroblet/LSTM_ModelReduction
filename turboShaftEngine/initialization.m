@@ -83,12 +83,25 @@ turbineFPT.refPressure = compressor.refPressure; % MPa
 turbineFPT.refTemperature = compressor.refTemperature; % K
 turbineFPT.mechanicalEff = 0.99; % mechanical efficiency
 turbineFPT.inletArea = turbine.outletArea; % inlet area m2
-turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
+turbineFPT.outletArea = turbineFPT.inletArea; % outlet area m2
 turbineFPT.RPMDesign = 20900; % design RPM for FTP 
 turbineFPT.RotorDamping = 10; % kg*m^2
-turbineFPT.massFlowDesign = compressor.massFlowDesign;
-turbineFPT.massFlowCorrected = compressor.massFlowDesign*sqrt((884.09+1125.08)/2/turbine.refTemperature)/...
+turbineFPT.massFlowDesign = 1.025*compressor.massFlowDesign;
+turbineFPT.massFlowCorrected = turbineFPT.massFlowDesign*sqrt((884.09+1125.08)/2/turbine.refTemperature)/...
     ((371631+109636)/2/turbine.refPressure);
+
+% nozzle
+nozzle.PR = 1.0142; % nozzle pressure ratio
+nozzle.massFlowDesign = turbineFPT.massFlowDesign; % kg/s
+nozzle.isentropicEfficiency = 0.9;
+nozzle.refPressure = compressor.refPressure; % MPa
+nozzle.refTemperature = compressor.refTemperature; % K
+nozzle.inletArea = turbineFPT.outletArea; % inlet area m2
+nozzle.outletArea = exhaust.crossArea; % outlet area m2
+nozzle.massFlowCorrected = nozzle.massFlowDesign*sqrt(884.09/turbine.refTemperature)/...
+    ((109636+108105)/2/turbine.refPressure);
+nozzle.damping = 1e-3; % kg*m^2
+
 
 rotorDamping = 1e-3; % kg*m^2
 
@@ -109,7 +122,7 @@ rotor.inertia2blades = ...
 rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
 rotor.powerCoeff = 0.43; % rotor's power coefficient
 rotor.thrustCoeff = 0.08; % rotor's torque coefficient
-rotor.rpm = 200;
+rotor.rpm = 257;
 
 
 
