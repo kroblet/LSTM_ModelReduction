@@ -28,15 +28,16 @@ coreHydrDiameter = coreDiameter; % cylindrical, same as diameter
 
 % compressor
 compressor.areaRatio = 1; % fraction between inlet and outlet area
-compressor.rpmDesign = 44700; % rpm
 compressor.PR = 17.5;  % pressure ratio
 compressor.PRMaxEff = 4.5; % maximum PR in max efficiency 
 compressor.isentropicEfficiency = 0.8210; % constant isentropic efficiency
 compressor.refPressure = 101325; % Pa
 compressor.refTemperature = 288.15; % K
 compressor.massFlowDesign = 4.6122; % kg/s
-compressor.massFlowCorrected = compressor.massFlowDesign*sqrt(289.44/compressor.refTemperature)/...
+compressor.massFlowCorrected = compressor.massFlowDesign*sqrt((289.44+717.99)/2/compressor.refTemperature)/...
     (95891/compressor.refPressure);
+compressor.rpmDesign = 44700; % rpm
+compressor.rpmDesignCorrected = compressor.rpmDesign/sqrt((289.44+717.99)/2/compressor.refTemperature);
 
 
 compressor.mechanicalEff = 0.99; % mechanical efficiency
@@ -72,20 +73,23 @@ turbine.refPressure = compressor.refPressure; % MPa
 turbine.refTemperature = compressor.refTemperature; % K
 turbine.mechanicalEff = 0.99; % mechanical efficiency
 turbine.massFlowDesign = 1.025*compressor.massFlowDesign; % kg/s
-turbine.massFlowCorrected = compressor.massFlowDesign*sqrt(burner.initTemp/turbine.refTemperature)/...
-    (burner.initPress/turbine.refPressure);
+turbine.massFlowCorrected = compressor.massFlowDesign*sqrt((burner.initTemp+1125.08)/2/turbine.refTemperature)/...
+    ((burner.initPress+371631)/2/turbine.refPressure);
 
 % turbine FPT
 turbineFPT.PR = 4.3750; % pressure ratio
-turbineFPT.massFlowDesign = compressor.massFlowDesign; % kg/s
 turbineFPT.isentropicEfficiency = 0.85; % constant isentropic efficiency
-turbineFPT.refPressure = initConditions.Pressure; % MPa
-turbineFPT.refTemperature = initConditions.Temperature; % K
+turbineFPT.refPressure = compressor.refPressure; % MPa
+turbineFPT.refTemperature = compressor.refTemperature; % K
 turbineFPT.mechanicalEff = 0.99; % mechanical efficiency
 turbineFPT.inletArea = turbine.outletArea; % inlet area m2
 turbineFPT.outletArea = exhaust.crossArea; % outlet area m2
 turbineFPT.RPMDesign = 20900; % design RPM for FTP 
 turbineFPT.RotorDamping = 10; % kg*m^2
+turbineFPT.massFlowDesign = compressor.massFlowDesign;
+turbineFPT.massFlowCorrected = compressor.massFlowDesign*sqrt((884.09+1125.08)/2/turbine.refTemperature)/...
+    ((371631+109636)/2/turbine.refPressure);
+
 rotorDamping = 1e-3; % kg*m^2
 
 % shaft GGT
