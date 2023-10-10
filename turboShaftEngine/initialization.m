@@ -1,5 +1,7 @@
 % initial conditions
-height = 465;
+% height = 465;
+height = 0;
+
 
 [T,a,P,rho,nu] = atmosisa(height);
 
@@ -28,11 +30,15 @@ coreHydrDiameter = coreDiameter; % cylindrical, same as diameter
 compressor.areaRatio = 1; % fraction between inlet and outlet area
 compressor.rpmDesign = 44700; % rpm
 compressor.PR = 17.5;  % pressure ratio
-compressor.massFlowDesign = 4.6122; % kg/s
 compressor.PRMaxEff = 4.5; % maximum PR in max efficiency 
 compressor.isentropicEfficiency = 0.8210; % constant isentropic efficiency
-compressor.refPressure = initConditions.Pressure; % MPa
-compressor.refTemperature = initConditions.Temperature; % K
+compressor.refPressure = 101325; % Pa
+compressor.refTemperature = 288.15; % K
+compressor.massFlowDesign = 4.6122; % kg/s
+compressor.massFlowCorrected = compressor.massFlowDesign*sqrt(289.44/compressor.refTemperature)/...
+    (95891/compressor.refPressure);
+
+
 compressor.mechanicalEff = 0.99; % mechanical efficiency
 compressor.inletArea = inlet.crossArea; % inlet area m2
 compressor.outletArea = compressor.inletArea/compressor.areaRatio; % outlet area m2
@@ -59,15 +65,15 @@ burner.heatDesign = burner.eff*burner.mfDesign*burner.HHV; % heat required for t
 % turbine GGT
 turbine.areaRatio = 1; % fraction between inlet and outlet area
 turbine.PR = 4; % pressure ratio
-turbine.massFlowDesign = compressor.massFlowDesign; % kg/s
 turbine.isentropicEfficiency = 0.85; % constant isentropic efficiency
 turbine.inletArea = burner.crossArea; % inlet area m2
 turbine.outletArea = turbine.areaRatio*turbine.inletArea; % outlet area m2
-
-turbine.refPressure = initConditions.Pressure; % MPa
-turbine.refTemperature = initConditions.Temperature; % K
+turbine.refPressure = compressor.refPressure; % MPa
+turbine.refTemperature = compressor.refTemperature; % K
 turbine.mechanicalEff = 0.99; % mechanical efficiency
-
+turbine.massFlowDesign = 1.025*compressor.massFlowDesign; % kg/s
+turbine.massFlowCorrected = compressor.massFlowDesign*sqrt(burner.initTemp/turbine.refTemperature)/...
+    (burner.initPress/turbine.refPressure);
 
 % turbine FPT
 turbineFPT.PR = 4.3750; % pressure ratio
@@ -99,7 +105,7 @@ rotor.inertia2blades = ...
 rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
 rotor.powerCoeff = 0.43; % rotor's power coefficient
 rotor.thrustCoeff = 0.08; % rotor's torque coefficient
-rotor.rpm = 257;
+rotor.rpm = 200;
 
 
 
