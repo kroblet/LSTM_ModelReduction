@@ -1,7 +1,6 @@
 % initial conditions
 % height = 465;
-height = 0;
-
+height = 465;
 
 [T,a,P,rho,nu] = atmosisa(height);
 
