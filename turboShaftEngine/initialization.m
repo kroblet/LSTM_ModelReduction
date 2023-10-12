@@ -1,7 +1,7 @@
 % initial conditions
 % height = 465;
 height = 465;
-
+g= 9.81; % m/s2 
 [T,a,P,rho,nu] = atmosisa(height);
 
 initConditions.Temperature = T; % K
@@ -120,10 +120,12 @@ rotor.inertia2blades = ...
     2*rotor.mass/rotor.bladeNum*rotor.diameter^2/12;
 rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
 rotor.powerCoeff = 0.43; % rotor's power coefficient
-rotor.thrustCoeff = 0.08; % rotor's torque coefficient
+rotor.thrustCoeff = 0.8; % rotor's torque coefficient
 rotor.rpm = 257;
+rotor.area = pi*rotor.diameter^2/4;
 
-
+% chassis
+chassis.mass = 6000; % kg
 
 
 
