@@ -8,18 +8,18 @@ simStopTimeLong = 500; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Wavelet analysis
-% load_system(modelName)
-% outSim = sim(modelName);
-% sampleTime = 1; % s
-% [resampledData, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
-% 
-% 
-% for iy =1:length(sigNames{:})
-%     figure()
-%     cwt(resampledData{1}(iy,:),1/sampleTime)
-%     title(sigNames{1}{iy})
-% end
-% 
+load_system(modelName)
+outSim = sim(modelName);
+sampleTime = 1; % s
+[resampledData, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
+
+
+for iy =1:length(sigNames{:})
+    figure()
+    cwt(resampledData{1}(iy,:),1/sampleTime)
+    title(sigNames{1}{iy})
+end
+
 
 %% Scenarios
 % run several operation points at several altitudes
@@ -200,9 +200,9 @@ offset = 1;
 numTimeSteps = size(X,2);
 numPredictionTimeSteps = numTimeSteps - offset;
 Y = zeros(numResponses,numPredictionTimeSteps);
-Y(:,1) = X(3:end,1);
+Y(:,1) = X(2:end,1);
 for t = 2:numPredictionTimeSteps
-    Xt = [X(1:2,t-1);Y(:,t-1)];
+    Xt = [X(1,t-1);Y(:,t-1)];
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
    hiddenState(t,:) = net.Layers(2,1).HiddenState;
    cellState(t,:) = net.Layers(2,1).CellState;

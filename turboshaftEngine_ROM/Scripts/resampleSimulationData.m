@@ -16,8 +16,7 @@ function [data, names] = resampleSimulationData(out,sampleStep)
                 loggedVector = ones(1,length(time)).*loggedVector;
             end
     
-            data{ix}(iy,:) = interp1(time, loggedVector,...
-                resTime,"linear");
+            data{ix}(iy,:) = resample(loggedVector, time, 1/sampleStep);
             names{ix}{iy} = out(ix).logsout{iy}.Name;
 
         end
