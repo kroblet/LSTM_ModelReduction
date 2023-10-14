@@ -1,6 +1,7 @@
 % initial conditions
 % height = 465;
-height = 465;
+fixedStepSize = 0.1;
+height = 0;
 g= 9.81; % m/s2 
 [T,a,P,rho,nu] = atmosisa(height);
 
@@ -126,6 +127,5 @@ rotor.area = pi*rotor.diameter^2/4;
 
 % chassis
 chassis.mass = 6000; % kg
-
 
 

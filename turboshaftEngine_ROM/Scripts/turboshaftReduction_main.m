@@ -1,37 +1,74 @@
 %% Initialization
 proj = matlab.project.rootProject; % project root
-scenarioDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationInput');
-simOutDir = fullfile(proj.RootFolder, 'BraytonGasTurbSimplified_LSTMReduction', 'SimulationOutput');
+scenarioDir = fullfile(proj.RootFolder, 'turboshaftEngine_ROM', 'SimulationInput');
+simOutDir = fullfile(proj.RootFolder, 'turboshaftEngine_ROM', 'SimulationOutput');
 modelName = 'turboshaftEngine_toReduce';
-simStopTimeLong = 1000; % Simulation stop time in s
+simStopTimeLong = 500; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
 
 %% Wavelet analysis
-load_system(modelName)
-outSim = sim(modelName);
-sampleTime = 1; % s
-[resampledData, sigNames] = resampleSimulationData(outSim,sampleTime);
-
-
-for iy =1:length(sigNames{:})
-    figure()
-    
-    cwt(resampledData{1}(iy,:),1/sampleTime)
-    title(sigNames{1}{iy})
-end
-
+% load_system(modelName)
+% outSim = sim(modelName);
+% sampleTime = 1; % s
+% [resampledData, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
+% 
+% 
+% for iy =1:length(sigNames{:})
+%     figure()
+%     cwt(resampledData{1}(iy,:),1/sampleTime)
+%     title(sigNames{1}{iy})
+% end
+% 
 
 %% Scenarios
 % run several operation points at several altitudes
-altitude = [0:10:500];
+% altitude = [0:100:1500];
+% 
+% numCases = length(altitude);
+% simIn(1:numCases) = Simulink.SimulationInput(modelName);
+% 
+% for ix=1:numCases
+%     simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Altitude'],'Value', num2str(altitude(ix)));
+% end
 
-numCases = length(altitude);
-simIn(1:numCases) = Simulink.SimulationInput(modelName);
+%% Generate Simulation Scenarios
+initialScenarioVector = [2e3:0.5e3:6e3];
+shaftSpeedStates = {{initialScenarioVector,simStopTimeLong},
+                    {initialScenarioVector+150,simStopTimeLong},                       
+                    {initialScenarioVector+300,simStopTimeLong},
+                    {initialScenarioVector+450, simStopTimeLong},
+                    {initialScenarioVector+600,simStopTimeLong}, 
+                    {initialScenarioVector+650, simStopTimeLong}};
 
-for ix=1:numCases
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Altitude'],'Value', num2str(altitude(ix)));
+for ix=1:numel(shaftSpeedStates)
+    generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
+    shaftSpeedStates{ix}{2}, 'stairOnly', ix)
 end
+
+
+%% Generate Simulink Simulation Inputs
+clearvars simIn
+fileList = listSimInpFiles(scenarioDir);
+numCases = length(fileList);
+scenario = {};
+for ix=1:numCases
+    fileName = split(fileList{ix},'.');
+    scenario{ix} = load(fileList{ix});
+    aux = split(fileName{1},'_');
+    simStopTime = aux{end};
+    simIn(ix) = Simulink.SimulationInput(modelName);
+
+    simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
+    % Initialize compressor's RPM with respect to the Simulation scenarios
+    simIn(ix) = setVariable(simIn(ix), 'Qin', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
+        'Workspace', modelName);    
+    simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
+        'Workspace', modelName);
+end
+
+
+
 
 %% Simulate
 simOut = parsim(simIn);
@@ -39,17 +76,22 @@ simOut = parsim(simIn);
 
 %% Resample results
 sampleTime = 1; % s
-[resampledData, sigNames] = resampleSimulationData(simOut,sampleTime);
+[resampledData, sigNamesCell] = resampleSimulationData(simOut,sampleTime);
+sigNames = sigNamesCell{1};
 
+%% Reorder data
+firstNames = [{'Qin'}];
+[reorderedData, reorderedNames] = reorderData(resampledData, sigNames, firstNames);
 
 %% Visualize
-visualizeTrainData(resampledData,sigNames{1}, 'Resampled Data')
+visualizeTrainData(reorderedData,reorderedNames, 'Resampled Data')
+
 
 %% Partition
 trainPercentage = 1; % the percentage of the data that they will be used for training
                        % the rest will be used for test
 
-[dataTrain, dataTest] = trainPartitioning(resampledData, trainPercentage);
+[dataTrain, dataTest] = trainPartitioning(reorderedData, trainPercentage);
 
 %% Concat
 
@@ -106,11 +148,11 @@ for iy=1:size(dataTest,2)
 end
 
 
-%%
+%% NN Architecture
 
-numFeatures = 10;
-numResponses = 9;
-outStartIdx = 2;
+numFeatures = length(sigNames);
+numResponses = length(sigNames)-length(firstNames);
+outStartIdx = length(firstNames)+1;
 numHiddenUnits = 150;
 dropoutProbability = 0.2;
 
@@ -119,6 +161,7 @@ dropoutProbability = 0.2;
 
 layers = [
     sequenceInputLayer(numFeatures,"Name","input")
+    lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
@@ -157,9 +200,9 @@ offset = 1;
 numTimeSteps = size(X,2);
 numPredictionTimeSteps = numTimeSteps - offset;
 Y = zeros(numResponses,numPredictionTimeSteps);
-Y(:,1) = X(2:end,1);
+Y(:,1) = X(3:end,1);
 for t = 2:numPredictionTimeSteps
-    Xt = [X(1,t-1);Y(:,t-1)];
+    Xt = [X(1:2,t-1);Y(:,t-1)];
     [net,Y(:,t)] = predictAndUpdateState(net,Xt);
    hiddenState(t,:) = net.Layers(2,1).HiddenState;
    cellState(t,:) = net.Layers(2,1).CellState;
