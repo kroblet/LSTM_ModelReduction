@@ -3,20 +3,22 @@ proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'turboshaftEngine_ROM', 'SimulationInput');
 simOutDir = fullfile(proj.RootFolder, 'turboshaftEngine_ROM', 'SimulationOutput');
 modelName = 'turboshaftEngine_toReduce';
-simStopTimeLong = 500; % Simulation stop time in s
+simStopTime = 500; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
 
 %% Wavelet analysis
 load_system(modelName)
+Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
+Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
 outSim = sim(modelName);
 sampleTime = 1; % s
-[resampledData, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
+[resampledDataCell, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
 
 
-for iy =1:length(sigNames{:})
+for iy =1:length(sigNamesCell)
     figure()
-    cwt(resampledData{1}(iy,:),1/sampleTime)
+    cwt(resampledDataCell{1}(iy,:),1/sampleTime)
     title(sigNames{1}{iy})
 end
 
@@ -34,12 +36,12 @@ end
 
 %% Generate Simulation Scenarios
 initialScenarioVector = [2e3:0.5e3:6e3];
-shaftSpeedStates = {{initialScenarioVector,simStopTimeLong},
-                    {initialScenarioVector+150,simStopTimeLong},                       
-                    {initialScenarioVector+300,simStopTimeLong},
-                    {initialScenarioVector+450, simStopTimeLong},
-                    {initialScenarioVector+600,simStopTimeLong}, 
-                    {initialScenarioVector+650, simStopTimeLong}};
+shaftSpeedStates = {{initialScenarioVector,simStopTime},
+                    {initialScenarioVector+150,simStopTime},                       
+                    {initialScenarioVector+300,simStopTime},
+                    {initialScenarioVector+450, simStopTime},
+                    {initialScenarioVector+600,simStopTime}, 
+                    {initialScenarioVector+650, simStopTime}};
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
@@ -67,8 +69,14 @@ for ix=1:numCases
         'Workspace', modelName);
 end
 
-
-
+% clear simIn
+% qin_slope = [1:10];
+% numCases = length(qin_slope);
+% simIn(1:numCases) = Simulink.SimulationInput(modelName);
+% for ix=1:numCases
+%     simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
+%     simIn(ix) = simIn(ix).setBlockParameter([modelName, '/Ramp'], 'Slope', num2str(qin_slope(ix)));
+% end
 
 %% Simulate
 simOut = parsim(simIn);
@@ -147,6 +155,9 @@ for iy=1:size(dataTest,2)
     dataValNorm{iy} = normValSep;
 end
 
+%% Inspect Normalized Train Data
+visualizeTrainData(XTrainSep(:),sigNames, 'Train Data')
+
 
 %% NN Architecture
 
@@ -155,28 +166,29 @@ numResponses = length(sigNames)-length(firstNames);
 outStartIdx = length(firstNames)+1;
 numHiddenUnits = 150;
 dropoutProbability = 0.2;
-
+initLearnRate = 1e-3;
+learnDropPeriod = 1000;
 
 [XTrainSep, TTrainSep] = preprocessTrainData(dataTrainNorm, outStartIdx);
 
 layers = [
     sequenceInputLayer(numFeatures,"Name","input")
     lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
-    lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
+    % lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
-    reluLayer("Name","relu")
+    % reluLayer("Name","relu")
     fullyConnectedLayer(numResponses,"Name","fc_2")
     regressionLayer("Name","regressionoutput")
     ];
 
 opts = trainingOptions("adam",...
     "ExecutionEnvironment","auto",...
-    "InitialLearnRate",0.01,...
+    "InitialLearnRate",initLearnRate,...
     "MaxEpochs",1000,...
     "Shuffle","every-epoch",... 
     "LearnRateSchedule","piecewise",...
-    "LearnRateDropPeriod",200,...
+    "LearnRateDropPeriod",learnDropPeriod,...
     "LearnRateDropFactor",0.1,...
     "ValidationFrequency",10,...
     "Plots","training-progress");
@@ -195,7 +207,7 @@ TY = TTrainSep{idx};
 
 net = resetState(net);
 offset = 1;
-[net,~] = predictAndUpdateState(net,X(:,1:offset));
+% [net,~] = predictAndUpdateState(net,X(:,1:offset));
 
 numTimeSteps = size(X,2);
 numPredictionTimeSteps = numTimeSteps - offset;
