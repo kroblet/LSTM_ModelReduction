@@ -18,7 +18,7 @@ for ix=1:indNew(end)
         names = swap(names, indNew(ix), indOld(ix), 1);
 
     else
-        disp('There is a mystyped name in the "firstNames"')
+        disp('There is a mistyped name in the "firstNames"')
     end
 end
 

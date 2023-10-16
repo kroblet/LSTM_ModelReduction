@@ -128,4 +128,32 @@ rotor.area = pi*rotor.diameter^2/4;
 % chassis
 chassis.mass = 6000; % kg
 
+% LSTM rom
+rom.mean.h = 0.0025e6;
+rom.mean.Qin = 0.0041e6;
+rom.mean.T3 = 1.3422e+03;
+rom.mean.AirMassFlow = 5.0812;
+rom.mean.fptRPM = 1.9787e+04;
+rom.mean.ggtRPM = 3.2837e+04;
+rom.mean.power = 1.4191e+03;
+rom.mean.p2 = 1.1921e+06;
+
+rom.std.h = 1.5811e+03;
+rom.std.Qin = 1.3988e+03;
+rom.std.T3 = 163.9369;
+rom.std.AirMassFlow = 1.0090;
+rom.std.fptRPM = 3.0767e+03;
+rom.std.ggtRPM = 1.3064e+03;
+rom.std.power = 600.6312;
+rom.std.p2 = 2.9221e+05;
+
+rom.init.h = (0-rom.mean.h)/rom.std.h;
+rom.init.Qin = (2e3-rom.mean.Qin)/rom.std.Qin;
+rom.init.T3 = (1.0293e+03-rom.mean.T3)/rom.std.T3;
+rom.init.AirMassFlow = (3.9257-rom.mean.AirMassFlow)/rom.std.AirMassFlow;
+rom.init.fptRPM = (1.4053e+04-rom.mean.fptRPM)/rom.std.fptRPM;
+rom.init.ggtRPM = (3.0467e+04-rom.mean.ggtRPM)/rom.std.ggtRPM;
+rom.init.power = (474.5508-rom.mean.power)/rom.std.power;
+rom.init.p2 = (8.0535e+05-rom.mean.p2)/rom.std.p2;
+
 
