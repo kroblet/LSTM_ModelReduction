@@ -8,7 +8,7 @@ simStopTime = 500; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Wavelet analysis
-% load_system(modelName)
+load_system(modelName)
 % Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
 % Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
 % outSim = sim(modelName);
@@ -25,24 +25,24 @@ train = true; % enable or disable network trainning
 
 %% Scenarios
 % run several operation points at several altitudes
-load_system(modelName)
-altitude = [0:500:5000];
-
-numCases = length(altitude);
-simIn(1:numCases) = Simulink.SimulationInput(modelName);
-
-for ix=1:numCases
-    simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Altitude'],'Value', num2str(altitude(ix)));
-end
+% load_system(modelName)
+% altitude = [0:500:5000];
+% 
+% numCases = length(altitude);
+% simIn(1:numCases) = Simulink.SimulationInput(modelName);
+% 
+% for ix=1:numCases
+%     simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Altitude'],'Value', num2str(altitude(ix)));
+% end
 
 %% Generate Simulation Scenarios
-initialScenarioVector = [2e3:0.5e3:6e3];
+initialScenarioVector = [2e3:0.5e3:5e3];
 shaftSpeedStates = {{initialScenarioVector,simStopTime},
-                    {initialScenarioVector(3:end)+150,simStopTime},                       
-                    {initialScenarioVector(3:end)+300,simStopTime},
-                    {initialScenarioVector(3:end)+450, simStopTime},
-                    {initialScenarioVector(3:end)+600,simStopTime}, 
-                    {initialScenarioVector(3:end)+650, simStopTime}};
+                    {[initialScenarioVector(1), initialScenarioVector(2:end)+150],simStopTime},                       
+                    {[initialScenarioVector(1), initialScenarioVector(2:end)+300],simStopTime},
+                    {[initialScenarioVector(1), initialScenarioVector(2:end)+450], simStopTime},
+                    {[initialScenarioVector(1), initialScenarioVector(2:end)+600],simStopTime}, 
+                    {[initialScenarioVector(1), initialScenarioVector(2:end)+650], simStopTime}};
 
 for ix=1:numel(shaftSpeedStates)
     generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
@@ -51,31 +51,35 @@ end
 
 
 %% Generate Simulink Simulation Inputs
+load_system(modelName)
+
 clearvars simIn
 % run several operation points at several altitudes
 % altitude = [0:500:2000];
 
-% fileList = listSimInpFiles(scenarioDir);
-% numCases = length(fileList);
+fileList = listSimInpFiles(scenarioDir);
+numCases = length(fileList);
 % totCases = numCases*length(altitude);
-% scenario = {};
-% 
-% 
-% for ix=1:numCases
-%     fileName = split(fileList{ix},'.');
-%     scenario{ix} = load(fileList{ix});
-%     aux = split(fileName{1},'_');
-%     simStopTime = aux{end};
-%     simIn(ix) = Simulink.SimulationInput(modelName);
-% 
-%     simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
-%     % Initialize compressor's RPM with respect to the Simulation scenarios
-%     simIn(ix) = setVariable(simIn(ix), 'Qin', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
-%         'Workspace', modelName);    
-%     simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
-%         'Workspace', modelName);
-% end
+scenario = {};
 
+
+for ix=1:numCases
+    fileName = split(fileList{ix},'.');
+    scenario{ix} = load(fileList{ix});
+    aux = split(fileName{1},'_');
+    simStopTime = aux{end};
+    simIn(ix) = Simulink.SimulationInput(modelName);
+
+    simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
+    % Initialize compressor's RPM with respect to the Simulation scenarios
+    simIn(ix) = setVariable(simIn(ix), 'Qin', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
+        'Workspace', modelName);    
+    simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
+        'Workspace', modelName);
+end
+
+
+%% Slope scenarios
 % clear simIn
 % qin_slope = [1:10];
 % numCases = length(qin_slope);
@@ -87,7 +91,6 @@ clearvars simIn
 
 %% Simulate
 simOut = parsim(simIn);
-
 
 %% Resample results
 sampleTime = 1; % s
