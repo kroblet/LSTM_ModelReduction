@@ -1,6 +1,7 @@
 % initial conditions
 % height = 465;
 fixedStepSize = 0.1;
+sampleTime = 1;
 height = 0;
 g= 9.81; % m/s2 
 [T,a,P,rho,nu] = atmosisa(height);

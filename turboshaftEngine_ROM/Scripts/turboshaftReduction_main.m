@@ -163,7 +163,7 @@ for iy=1:size(dataTest,2)
 end
 
 %% Inspect Normalized Train Data
-visualizeTrainData(dataTrainNorm(:),sigNames, 'Train Data')
+visualizeTrainData(dataTrainNorm(:),reorderedNames, 'Train Data')
 
 
 %% NN Architecture
@@ -221,8 +221,8 @@ numPredictionTimeSteps = numTimeSteps - offset;
 Y = zeros(numResponses,numPredictionTimeSteps);
 Y(:,1) = X(3:end,1);
 for t = 2:numPredictionTimeSteps
-    Xt = [X(1:2,t-1);Y(:,t-1)];
-    [net,Y(:,t)] = predictAndUpdateState(net,Xt);
+   Xt = [X(1:2,t-1);Y(:,t-1)];
+   [net,Y(:,t)] = predictAndUpdateState(net,Xt);
    hiddenState(t,:) = net.Layers(2,1).HiddenState;
    cellState(t,:) = net.Layers(2,1).CellState;
 end
@@ -236,4 +236,5 @@ hold off
 end
 
 %% save net
+net = resetState(net);
 save("turboshaftEngine_ROM\turboshaft_ROM.mat","net")
