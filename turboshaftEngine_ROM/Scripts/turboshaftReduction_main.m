@@ -94,11 +94,11 @@ simOut = parsim(simIn);
 
 %% Resample results
 sampleTime = 1; % s
-[resampledData, sigNamesCell] = resampleSimulationData(simOut,sampleTime);
+[resampledData, sigNamesCell] = resampleSimulationData(simOut,0.1);
 sigNames = sigNamesCell{1};
 
 %% Reorder data
-firstNames = [{'Altidude', 'Qin'}];
+firstNames = [{'Altitude', 'Qin'}];
 [reorderedData, reorderedNames] = reorderData(resampledData, sigNames, firstNames);
 
 %% Visualize
@@ -240,4 +240,4 @@ end
 
 %% save net
 net = resetState(net);
-save("turboshaftEngine_ROM\turboshaft_ROM.mat","net")
+save("turboshaftEngine_ROM\turboshaft_ROM_short.mat","net")

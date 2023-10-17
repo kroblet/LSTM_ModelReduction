@@ -2,7 +2,7 @@
 % height = 465;
 fixedStepSize = 0.1;
 sampleTime = 1;
-Qin = [2000 2000 3100 3100 3600 3600 4100 4100 4600 4600 5100 5100 5600 5600];
+Qin = [2000 2000 3100 3100 3600 3600 4100 4100 4600 4600 5100 5100 5100 5100];
 Qin_time = [0 66.6667 83.3333 150.0000 166.6667 233.3333 250.0000 316.6667 333.3333 400.0000 416.6667 483.3333 500.0000 566.6667];
 
 height = 0;
@@ -133,31 +133,33 @@ rotor.area = pi*rotor.diameter^2/4;
 chassis.mass = 6000; % kg
 
 % LSTM rom
-rom.mean.h = 0.0025e6;
-rom.mean.Qin = 0.0041e6;
-rom.mean.T3 = 1.3422e+03;
-rom.mean.AirMassFlow = 5.0812;
-rom.mean.fptRPM = 1.9787e+04;
-rom.mean.ggtRPM = 3.2837e+04;
-rom.mean.power = 1.4191e+03;
-rom.mean.p2 = 1.1921e+06;
+load meanTrain.mat
+load stdTrain.mat
+rom.mean.h = meanTrain(1);
+rom.mean.Qin = meanTrain(2);
+rom.mean.AirMassFlow = meanTrain(3);
+rom.mean.fptRPM = meanTrain(4);
+rom.mean.ggtRPM = meanTrain(5);
+rom.mean.power =  meanTrain(6);
+rom.mean.T3 = meanTrain(7);
+rom.mean.p2 = meanTrain(8);
 
-rom.std.h = 1.5811e+03;
-rom.std.Qin = 1.3988e+03;
-rom.std.T3 = 163.9369;
-rom.std.AirMassFlow = 1.0090;
-rom.std.fptRPM = 3.0767e+03;
-rom.std.ggtRPM = 1.3064e+03;
-rom.std.power = 600.6312;
-rom.std.p2 = 2.9221e+05;
+rom.std.h = stdTrain(1);
+rom.std.Qin = stdTrain(2);
+rom.std.AirMassFlow = stdTrain(3);
+rom.std.fptRPM = stdTrain(4);
+rom.std.ggtRPM = stdTrain(5);
+rom.std.power = stdTrain(6);
+rom.std.T3 = stdTrain(7);
+rom.std.p2 = stdTrain(8);
 
-rom.init.h = (0-rom.mean.h)/rom.std.h;
-rom.init.Qin = (2e3-rom.mean.Qin)/rom.std.Qin;
-rom.init.T3 = (1.0293e+03-rom.mean.T3)/rom.std.T3;
-rom.init.AirMassFlow = (3.9257-rom.mean.AirMassFlow)/rom.std.AirMassFlow;
-rom.init.fptRPM = (1.4053e+04-rom.mean.fptRPM)/rom.std.fptRPM;
-rom.init.ggtRPM = (3.0467e+04-rom.mean.ggtRPM)/rom.std.ggtRPM;
-rom.init.power = (474.5508-rom.mean.power)/rom.std.power;
-rom.init.p2 = (8.0535e+05-rom.mean.p2)/rom.std.p2;
-
+rom.init.h = 1.5767;
+rom.init.Qin = 1.1079;
+rom.init.AirMassFlow = -2.1875;
+rom.init.fptRPM = -1.7093;
+rom.init.ggtRPM = -1.7263;
+rom.init.power = -1.4515;
+rom.init.T3 = -1.5059;
+rom.init.p2 = -2.0145;
+rom.init.timeCutOff = 10;
 
