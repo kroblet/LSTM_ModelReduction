@@ -45,8 +45,8 @@ shaftSpeedStates = {{initialScenarioVector,simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+650], simStopTime}};
 
 for ix=1:numel(shaftSpeedStates)
-    generateShaftSpeedInputs(scenarioDir, shaftSpeedStates{ix}{1},...
-    shaftSpeedStates{ix}{2}, 'stairOnly', ix)
+    generateInputs(scenarioDir, shaftSpeedStates{ix}{1},...
+    shaftSpeedStates{ix}{2}, ix, 'heatIn')
 end
 
 
@@ -77,17 +77,6 @@ for ix=1:numCases
     simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
         'Workspace', modelName);
 end
-
-
-%% Slope scenarios
-% clear simIn
-% qin_slope = [1:10];
-% numCases = length(qin_slope);
-% simIn(1:numCases) = Simulink.SimulationInput(modelName);
-% for ix=1:numCases
-%     simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
-%     simIn(ix) = simIn(ix).setBlockParameter([modelName, '/Ramp'], 'Slope', num2str(qin_slope(ix)));
-% end
 
 %% Simulate
 simOut = parsim(simIn);
