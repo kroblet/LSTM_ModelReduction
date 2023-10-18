@@ -105,10 +105,10 @@ end
 %% Check response
 
 results = predict(net,XTest,SequencePaddingDirection="left");
-inspectPredData(results)
+% inspectPredData(results)
 save('braytonLSTMNetThermo', 'net')
 %% Inspect NN response
-inspectPredData(results)
+% inspectPredData(results)
 
 %% Train LSTM Network for mechanical part
 

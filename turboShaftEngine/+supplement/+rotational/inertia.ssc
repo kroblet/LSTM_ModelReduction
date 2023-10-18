@@ -1,0 +1,80 @@
+component inertia
+    % Inertia
+    % The block represents an ideal mechanical rotational inertia.
+    %
+    % The block has one or two mechanical rotational conserving ports. The
+    % difference is purely graphical, as the ports are rigidly linked.
+    % The block positive direction is from its port to the reference point.
+    % This means that the inertia torque is positive if the inertia is
+    % accelerated in the positive direction.
+
+% If steady state, priorities recommended to be none
+% If non-steady, set w high, t low
+
+    % Copyright 2005-2020 The MathWorks, Inc.
+
+    nodes
+        I = foundation.mechanical.rotational.rotational; % :top
+    end
+
+    nodes(ExternalAccess=none)
+        J = foundation.mechanical.rotational.rotational; % :bottom
+    end
+
+    parameters
+        inertia = { 0.01, 'kg*m^2' };      % Inertia
+        num_ports = foundation.enum.numPorts2.one; % Number of graphical ports
+        steady_state = false;  % Steady-state 
+        steady_state_init = false;  % Steady-state initialization
+    end
+
+    if num_ports == 2
+        annotations
+            J : ExternalAccess=modify
+            Icon = "inertia2port.svg"
+        end
+    end
+
+    variables
+        w = { value = { 0, 'rad/s' }, priority = priority.high };   % Rotational velocity
+        t = { 0, 'N*m' };                                           % Torque
+    end
+
+    branches
+        t : I.t -> *;
+    end
+
+    if steady_state
+        annotations
+            [inertia,steady_state_init] : ExternalAccess=none
+        end
+
+        equations
+            t == 0;
+            w == I.w;
+        end
+
+    elseif steady_state_init
+        equations (Initial = true)
+            t == 0;
+            w == I.w;
+        end
+
+        equations
+            assert(inertia>0)
+            t == inertia * w.der;
+            w == I.w;
+        end
+    else
+        equations
+            assert(inertia>0)
+            t == inertia * w.der;
+            w == I.w;
+        end
+    end
+
+    connections
+        connect(I,J)
+    end
+
+end

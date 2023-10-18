@@ -1,0 +1,554 @@
+component turbine
+% Turbine (G) : 1.5
+% This block models a variable-geometry turbine in a gas network whose
+% characteristics are described either analytically or through either a 1D
+% or 2D tabulated turbine map. The analytical model uses the Law of the
+% Ellipse and assumes constant efficiency. For the tabulated model, the
+% corrected mass flow rate and the isentropic efficiency are specified
+% as a function of pressure ratio (1D) or pressure ratio and corrected
+% speed (2D). The last element of mass flow rate and its corresponding
+% pressure ratio are assumed to be the choked flow rate and the choked
+% pressure ratio, respectively.<br/>
+% <br/>
+% The variable nozzle opening fraction is set by the physical signal port
+% VN. A linear relationship is assumed between the nozzle opening and the
+% corrected mass flow rate. The tabulated data corresponds to maximum
+% opening fraction of 1.<br/>
+% <br/>
+% Ports A and B are the gas conserving ports associated with the turbine
+% inlet and outlet, respectively. Ports R and C are the mechanical
+% rotational conserving ports associated with the shaft and casing,
+% respectively. Gas flow from port A to port B drives a positive rotation
+% of port R relative to port C. The behavior of the block for reversed flow
+% is undefined.<br/>
+% <br/>
+% Right-click on the block and select <b>Fluids</b> >
+% <b>Plot Turbine Map</b> to view the turbine map.
+
+% Copyright 2016-2022 The MathWorks, Inc.
+
+nodes
+    A = foundation.gas.gas;                          % A:left
+    B = foundation.gas.gas;                          % B:right
+    R = foundation.mechanical.rotational.rotational; % R:left
+    C = foundation.mechanical.rotational.rotational; % C:right
+end
+
+inputs (ExternalAccess = none)
+    % Variable nozzle opening fraction
+    VN = {1, '1'}; % VN:left
+end
+
+parameters
+    parameterization = fluids.gas.turbomachinery.enum.TurbineParameterization.Analytical; % Turbine map parameterization
+    %                                                                                       1 - Analytical
+    %                                                                                       2 - Tabulated1D
+    %                                                                                       3 - Tabulated2D
+    variable_nozzle       = false;              % Enable variable nozzle input port
+end
+parameters (ExternalAccess = none)
+    min_nozzle_opening    = {1e-3,     '1'   }; % Minimum nozzle opening fraction
+    max_nozzle_opening    = {1,        '1'   }; % Maximum nozzle opening fraction
+
+    pr_nom                = {2,        '1'   }; % Nominal pressure ratio
+    mdot_nom              = {48,       'kg/s'}; % Nominal corrected mass flow rate
+    efficiency_constant   = {0.8,      '1'   }; % Constant isentropic efficiency
+
+    pr_mdot_TLU = {[1.2510    1.3450    1.4420    1.5210    1.5960    1.6920    1.8490    1.9720    2.1000    2.1730    2.2590    2.3424], '1'   }; % Pressure ratio vector, pr
+    mdot_TLU    = {[39.4390   43.0100   45.5560   46.8010   47.7920   48.3880   48.6340   48.6700   48.6890   48.7470   48.8250   48.912], 'kg/s'}; % Corrected mass flow rate vector, mdot(pr)
+
+    pr_eta_TLU = {[1.2520    1.3280    1.4250    1.5440    1.6420    1.7570    1.8730    2.0050    2.1000    2.2040    2.2480    2.2800], '1'}; % Pressure ratio vector, pr
+    eta_TLU    = {[0.5590    0.6100    0.6730    0.7410    0.7880    0.8350    0.8690    0.8950    0.9080    0.8990    0.8540    0.7510], '1'}; % Isentropic efficiency vector, eta(pr)
+
+    omega_TLU_2 = {[5000, 6000, 7000, 8000, 9000, 10000, 11000], 'rpm' }; % Corrected speed index vector, N
+
+    % Data points in parentheses have been linearly interpolated / extrapolated from neighbor values to provide consistent table dimensions while
+    % maintaining shape behavior.  Original NNEP tables did not have uniform lengths for performance data as speed and pressure varied.
+    pr_mdot_TLU_2 = {[
+        1.2170    1.2850    1.3230    1.3630    1.4020    1.4270    1.4950    1.5450    1.6000    1.6870    1.7470    (1.8074)
+        1.2310    1.3020    1.3560    1.4040    1.4430    1.4730    1.5250    1.5770    1.6350    1.7090    1.7820    1.8450
+        1.2420    1.3280    1.3880    1.4370    1.5280    1.6170    1.7040    1.8110    1.9150    1.9790    (2.053)  (2.1226)
+        1.2440    1.3390    1.4170    1.4650    1.5280    1.5840    1.6920    1.7870    1.8990    2.0000    2.0750    (2.1492)
+        1.2450    1.3400    1.4250    1.4920    1.5460    1.6840    1.7480    1.8820    1.9870    2.0840    2.1670    (2.2458)
+        1.2510    1.3450    1.4420    1.5210    1.5960    1.6920    1.8490    1.9720    2.1000    2.1730    2.2590    (2.3424)
+        1.2480    1.3480    1.4470    1.5160    1.5810    1.6510    1.7490    1.8390    1.9300    2.0240    2.1540    2.2420],   '1'   }; % Pressure ratio table, pr(N,beta)
+    mdot_TLU_2    = {[
+        40.4030   44.4170   46.6530   47.9660   48.9700   49.5440   50.0010   50.0810   50.0860   50.0950   50.0900   (50.0922)
+        40.0440   43.7540   46.1250   47.6260   48.5130   49.1050   49.4810   49.5800   49.5970   49.6240   49.6380   49.6330
+        39.9410   43.7950   46.0170   47.3350   48.7950   49.1990   49.2790   49.2700   49.2480   49.2300   (49.255)  (49.2428)
+        39.8960   43.5120   45.9140   47.0610   48.0110   48.5580   48.9430   49.0420   49.0690   49.0100   49.0460   (49.0266)
+        39.5240   42.9340   45.6860   46.7430   47.7150   48.6700   48.7770   48.8360   48.8760   48.8360   48.8450   (48.8184)
+        39.4390   43.0100   45.5560   46.8010   47.7920   48.3880   48.6340   48.6700   48.6390   48.6470   48.6250   (48.5912)
+        39.5020   42.8490   45.3360   46.3850   47.3120   47.8770   48.2220   48.3970   48.4590   48.4820   48.4550   48.4140],  'kg/s'}; % Corrected mass flow rate table, mdot(N,beta)
+    pr_eta_TLU_2  = {[
+        1.2240    1.2460    1.2920    1.3870    1.4570    1.5340    1.6100    1.6860    1.7430    (1.7900)    (1.871)    (1.9140)
+        1.2370    1.2500    1.2800    1.3690    1.4590    1.5530    1.6290    1.7160    1.7990    1.8460   (1.9270)   (1.9700)
+        1.2410    1.2550    1.2830    1.3260    1.4010    1.5090    1.5910    1.7040    1.8060    1.9130    1.9940    (2.0370)
+        1.2500    1.2650    1.3080    1.3640    1.4560    1.5320    1.6370    1.7390    1.8510    1.9340    2.0420    2.0850
+        1.2810    1.3140    1.3710    1.4250    1.4980    1.5740    1.6470    1.7490    1.8780    1.9790    2.0910    2.1800
+        1.2520    1.3280    1.4250    1.5440    1.6420    1.7570    1.8730    2.0050    2.1000    2.2040    2.2480    2.2800
+        1.3820    1.4300    1.4950    1.5860    1.6880    1.7910    1.8870    1.9900    2.0790    2.1580    2.2490    (2.3600)], '1'   }; % Pressure ratio table, pr(N,beta)
+    eta_TLU_2     = {[
+        0.7200    0.7540    0.7590    0.7390    0.7140    0.6790    0.6430    0.6030    0.5540    (0.5240)    (0.4940)    (0.4800)
+        0.7160    0.7570    0.7940    0.8190    0.8120    0.7880    0.7610    0.7280    0.6920    0.6620   (0.6320)  (0.6180)
+        0.6290    0.6910    0.7750    0.8310    0.8580    0.8690    0.8590    0.8420    0.8160    0.7820    0.7520   (0.7380)
+        0.5940    0.6680    0.7570    0.8040    0.8570    0.8830    0.8920    0.8930    0.8840    0.8650    0.8350    0.8210
+        0.6640    0.7200    0.7790    0.8230    0.8580    0.8830    0.8970    0.9050    0.9040    0.8960    0.8830    0.8680
+        0.5590    0.6100    0.6730    0.7410    0.7880    0.8350    0.8690    0.8950    0.9080    0.8990    0.8540    0.7510
+        0.7180    0.7850    0.8240    0.8550    0.8820    0.9000    0.9080    0.9060    0.8840    0.8570    0.8040   (0.701)],   '1'   }; % Isentropic efficiency table, eta(N,beta)
+end
+parameters
+    ref_from_init = false;   % Use initial condition as reference point
+    p_ref           = {0.101325, 'MPa' }; % Reference pressure for corrected flow
+    T_ref           = {288.15,   'K'   }; % Reference temperature for corrected flow
+    mechanical_efficiency = {0.9,      '1'   }; % Mechanical efficiency
+    area_A                = {1,        'm^2' }; % Inlet area at port A
+    area_B                = {1,        'm^2' }; % Outlet area at port B
+end
+
+annotations
+    UILayout = [
+        UIGroup('Parameterization', parameterization, omega_TLU_2, variable_nozzle, ...
+            min_nozzle_opening, max_nozzle_opening)
+        UIGroup('Flow Rate Data', pr_nom, mdot_nom, pr_mdot_TLU, mdot_TLU, ...
+            pr_mdot_TLU_2, mdot_TLU_2)
+        UIGroup('Efficiency Data', efficiency_constant, pr_eta_TLU, eta_TLU, ...
+            pr_eta_TLU_2, eta_TLU_2)
+        UIGroup('Reference Data', ref_from_init, p_ref, T_ref, mechanical_efficiency, ...
+            area_A, area_B)]
+end
+
+parameters (Access = private)
+    % Shaft speed threshold for power balance equation
+    omega_threshold = {1, 'rpm'};
+end
+
+% Parameter checks
+equations
+    assert(p_ref > 0)
+    assert(T_ref > 0)
+    assert(mechanical_efficiency > 0)
+    assert(area_A > 0)
+    assert(area_B > 0)
+    assert(min_nozzle_opening > 0)
+    assert(max_nozzle_opening >= min_nozzle_opening)
+end
+
+%%%%%%%%%% EDITED %%%%%%%%%%%
+if ref_from_init == true    % Hide the reference conditions if setting using initial conditions
+    annotations
+        [p_ref, T_ref] : ExternalAccess = none;
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if parameterization == fluids.gas.turbomachinery.enum.TurbineParameterization.Analytical
+    annotations
+        [pr_nom, mdot_nom, efficiency_constant] : ExternalAccess = modify;
+    end
+
+    % Parameter checks
+    equations
+        assert(pr_nom > 1)
+        assert(mdot_nom > 0)
+        assert(efficiency_constant > 0)
+        assert(efficiency_constant <= 1)
+    end
+
+    parameters (Access = private)
+        pthresh = {0.001, '1'};
+
+        isentropic_efficiency_ = efficiency_constant;
+    end
+
+    intermediates (Access = private, ExternalAccess = none)
+        beta_mdot_2 = 0;
+        beta_eta_2 = 0;
+        pr_term = (1 - (1/pressure_ratio)^2);
+        pr_term_root_protected = pr_term * (pr_term^2 + pthresh^2)^(-0.25);
+    end
+
+    equations
+        mdot_corrected == nozzle_opening * mdot_nom * pr_term_root_protected / (1 - (1/pr_nom)^2)^0.5;
+    end
+
+elseif parameterization == fluids.gas.turbomachinery.enum.TurbineParameterization.Tabulated1D
+    annotations
+        [pr_mdot_TLU, mdot_TLU, pr_eta_TLU, eta_TLU] : ExternalAccess = modify;
+    end
+
+    % Parameter checks
+    equations
+        % Check table size
+        assert(length(pr_mdot_TLU) >= 2)
+        assert(length(mdot_TLU) == length(pr_mdot_TLU))
+        assert(length(pr_eta_TLU) >= 2)
+        assert(length(eta_TLU) == length(pr_eta_TLU))
+        % Check table grid order
+        assert(all(diff(pr_mdot_TLU) > 0))
+        assert(all(diff(mdot_TLU) > 0))
+        assert(all(diff(pr_eta_TLU) > 0))
+        % Check values
+        assert(all(pr_mdot_TLU(:) >= 1))
+        assert(all(mdot_TLU(:) > 0))
+        assert(all(pr_eta_TLU(:) > 1))
+        assert(all(eta_TLU(:) > 0))
+        assert(all(eta_TLU(:) <= 1))
+    end
+
+    parameters (Access = private)
+        % Make vectors vertical
+        pr_mdot_TLU_vertical = pr_mdot_TLU(:);
+        mdot_TLU_vertical    = mdot_TLU(:);
+        pr_eta_TLU_vertical  = pr_eta_TLU(:);
+        eta_TLU_vertical     = eta_TLU(:);
+
+        % Extend tables to pressure ratio between 0 and 1
+        pr_mdot_TLU_used = [1./pr_mdot_TLU_vertical(end:-1:1); 1; pr_mdot_TLU_vertical];
+        mdot_TLU_used = [-mdot_TLU_vertical(end:-1:1); 0; mdot_TLU_vertical];
+
+        pr_eta_TLU_used = [1./pr_eta_TLU_vertical(end:-1:1); 1; pr_eta_TLU_vertical];
+        eta_TLU_used = [eta_TLU_vertical(end:-1:1); eta_TLU_vertical(1); eta_TLU_vertical];
+
+        beta_mdot_2 = 0;
+        beta_eta_2 = 0;
+    end
+
+    intermediates (Access = private, ExternalAccess = none)
+        isentropic_efficiency_ = tablelookup(pr_eta_TLU_used, eta_TLU_used, pressure_ratio, interpolation = linear, extrapolation = nearest);
+    end
+
+    equations
+        mdot_corrected == nozzle_opening * tablelookup(pr_mdot_TLU_used, mdot_TLU_used, pressure_ratio, interpolation = linear, extrapolation = linear);
+    end
+
+else % parameterization == fluids.gas.turbomachinery.enum.TurbineParameterization.Tabulated2D
+    annotations
+        [omega_TLU_2, pr_mdot_TLU_2, mdot_TLU_2, pr_eta_TLU_2, eta_TLU_2] : ExternalAccess = modify;
+    end
+
+    % Parameter checks
+    equations
+        % Check table size
+        assert(length(omega_TLU_2) >= 2)
+        assert(pr_mdot_col >=2)
+        assert(all(size(pr_mdot_TLU_2) == [length(mdot_col), length(mdot_row)]))
+        assert(pr_eta_col >=2)
+        assert(all(size(pr_eta_TLU_2) == [length(eta_col), length(eta_row)]))
+        % Check table grid order
+        assert(all(diff(omega_TLU_2) > 0))
+        assert(all(all(diff(pr_mdot_TLU_2, 1 ,2) > 0)))
+        assert(all(all(diff(pr_eta_TLU_2, 1, 2) > 0)))
+        % Check values
+        assert(all(pr_mdot_TLU_2(:) > 1))
+        assert(all(mdot_TLU_2(:) > 0))
+        assert(all(pr_eta_TLU_2(:) > 1))
+        assert(all(eta_TLU_2(:) > 0))
+        assert(all(eta_TLU_2(:) <= 1))
+    end
+
+    parameters (Access = private)
+        pr_mdot_col = size(pr_mdot_TLU_2,2)         % Number of columns in the Pressure ratio table, pr(N,beta)
+        pr_eta_col = size(pr_eta_TLU_2,2)           % Number of columns in the Pressure ratio table, pr(N,beta)
+        mdot_row = mdot_TLU_2(1,:)                  % rows in the Corrected mass flow rate table, mdot(N,beta)
+        mdot_col = mdot_TLU_2(:,1)                  % columns in the Corrected mass flow rate table, mdot(N,beta)
+        eta_row = eta_TLU_2(1,:)                    % rows in the Isentropic efficiency table, eta(N,beta)
+        eta_col = eta_TLU_2(:,1)                    % columns in the Isentropic efficiency table, eta(N,beta)
+
+        omega_TLU_vertical_2 = omega_TLU_2(:);
+        omega_TLU_used_2 = omega_TLU_vertical_2;
+        beta_mdot_TLU = 1:size(pr_mdot_TLU_2,2);
+        beta_mdot_TLU_used = 1:(2*size(beta_mdot_TLU,2)+3);
+        beta_eta_TLU = 1:size(pr_eta_TLU_2,2);
+        beta_eta_TLU_used = 1:(2*size(beta_eta_TLU,2)+3);
+
+        pr_mdot_ext = 2.*pr_mdot_TLU_2(:,pr_mdot_col) - pr_mdot_TLU_2(:,pr_mdot_col-1);
+        pr_eta_ext = 2.*pr_eta_TLU_2(:,pr_eta_col) - pr_eta_TLU_2(:,pr_eta_col-1);
+
+        pr_mdot_TLU_used_2 = [1./pr_mdot_ext, 1./pr_mdot_TLU_2(:,end:-1:1), ones(size(pr_mdot_TLU_2,1),1), pr_mdot_TLU_2, pr_mdot_ext];
+        mdot_TLU_used_2 = [-mdot_TLU_2(:,end), -mdot_TLU_2(:,end:-1:1), {zeros(size(mdot_TLU_2,1),1), 'kg/s'}, mdot_TLU_2, mdot_TLU_2(:,end)];
+        pr_eta_TLU_used_2 = [1./pr_eta_ext, 1./pr_eta_TLU_2(:,end:-1:1), ones(size(pr_eta_TLU_2,1),1), pr_eta_TLU_2, pr_eta_ext];
+        eta_TLU_used_2 = [eta_TLU_2(:,end), eta_TLU_2(:,end:-1:1), eta_TLU_2(:,1), eta_TLU_2, eta_TLU_2(:,end)];
+
+        % Corrected shaft speed threshold
+        omega_corrected_threshold = omega_TLU_2(1);
+
+        % Ratio of corrected flow to corrected speed threshold
+        mdot_omega_TLU_threshold = mdot_TLU_used_2(1,:)/omega_corrected_threshold;
+    end
+
+    variables (Access = private, ExternalAccess = none)
+        beta_mdot_2 = {13, '1'}; % Beta - Corrected mass flow rate
+        beta_eta_2  = {13, '1'}; % Beta - Isentropic efficiency
+    end
+
+    intermediates (Access = private, ExternalAccess = none)
+        isentropic_efficiency_ = tablelookup(omega_TLU_used_2, beta_eta_TLU_used, eta_TLU_used_2, omega_corrected, beta_eta_2, interpolation = linear, extrapolation = nearest);
+
+        mdot_omega_corrected_threshold = tablelookup(beta_mdot_TLU_used, mdot_omega_TLU_threshold, beta_mdot_2, interpolation = linear, extrapolation = linear);
+        mdot_omega_threshold = mdot_omega_corrected_threshold * (p_A/p_reference) / (T_A/T_reference);
+
+        % Ratio of mass flow rate to shaft speed
+        mdot_omega = ...
+            if  ge(omega_corrected, omega_corrected_threshold), ...
+                mdot_A / omega_pos ...
+            else ...
+                mdot_omega_threshold  ...
+            end;
+    end
+
+    equations
+        mdot_corrected == nozzle_opening * tablelookup(omega_TLU_used_2, beta_mdot_TLU_used, mdot_TLU_used_2, omega_corrected, beta_mdot_2, interpolation = linear, extrapolation = linear);
+
+        % Ensure that beta_mdot and beta_eta return the same pressure ratio since the betas are allowed to differ
+        pressure_ratio == tablelookup(omega_TLU_used_2, beta_eta_TLU_used, pr_eta_TLU_used_2, omega_corrected, beta_eta_2, interpolation = linear, extrapolation = linear);
+        pressure_ratio == tablelookup(omega_TLU_used_2, beta_mdot_TLU_used, pr_mdot_TLU_used_2, omega_corrected, beta_mdot_2, interpolation = linear, extrapolation = linear);
+    end
+end
+
+if variable_nozzle
+    annotations
+        [VN, min_nozzle_opening, max_nozzle_opening] : ExternalAccess = modify;
+%         Icon = 'turbine_VN_input.svg';
+    end
+    intermediates (Access = private, ExternalAccess = none)
+        % Limit turbine nozzle opening fraction
+        nozzle_opening = simscape.function.limit(VN, min_nozzle_opening, max_nozzle_opening, false);
+    end
+else
+    annotations
+        Icon = 'turbine.svg';
+    end
+    parameters (Access = private)
+        nozzle_opening = {1, '1'};
+    end
+end
+
+variables (Access = protected)
+    mdot_A = {0, 'kg/s'}; % Mass flow rate into port A
+    mdot_B = {0, 'kg/s'}; % Mass flow rate into port B
+    Phi_A  = {0, 'kW'  }; % Energy flow rate into port A
+    Phi_B  = {0, 'kW'  }; % Energy flow rate into port B
+    torque = {0, 'N*m' }; % Shaft torque
+end
+
+variables (Access = protected, ExternalAccess = none)
+    T_A      = {300, 'K'}; % Temperature at port A
+    T_B      = {300, 'K'}; % Temperature at port B
+    T_B_isen = {300, 'K'}; % Isentropic temperature at port B
+end
+
+branches
+    mdot_A : A.mdot -> *;
+    mdot_B : B.mdot -> *;
+    Phi_A  : A.Phi  -> *;
+    Phi_B  : B.Phi  -> *;
+    torque : C.t    -> R.t;
+end
+
+intermediates (Access = private, ExternalAccess = none)
+    % Port pressure
+    p_A = A.p;
+    p_B = B.p;
+
+    % Log temperature
+    log_T_A      = simscape.function.logProtected(T_A     /A.T_unit, 1);
+    log_T_B      = simscape.function.logProtected(T_B     /A.T_unit, 1);
+    log_T_B_isen = simscape.function.logProtected(T_B_isen/A.T_unit, 1);
+
+    % Log pressure
+    log_p_A = simscape.function.logProtected(p_A/A.p_unit, 1);
+    log_p_B = simscape.function.logProtected(p_B/A.p_unit, 1);
+
+    % Thermal equation of state
+    % Use log-space to improve accuracy
+    [rho_A, rho_B, rho_B_isen] = ...
+        if A.gas_spec ~= foundation.enum.gas_spec.real_gas, ...
+            exp(log_p_A - A.log_ZR - log_T_A     ) * A.rho_unit; ...
+            exp(log_p_B - A.log_ZR - log_T_B     ) * A.rho_unit; ...
+            exp(log_p_B - A.log_ZR - log_T_B_isen) * A.rho_unit ...
+        else ...
+            exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_A,      log_p_A, interpolation = linear, extrapolation = linear)) * A.rho_unit; ...
+            exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_B,      log_p_B, interpolation = linear, extrapolation = linear)) * A.rho_unit; ...
+            exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_B_isen, log_p_B, interpolation = linear, extrapolation = linear)) * A.rho_unit ...
+        end;
+
+    % Caloric equation of state
+    [h_A, h_B, h_B_isen] = ...
+        if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+            A.h_ref + A.cp_ref*(T_A      - A.T_ref); ...
+            A.h_ref + A.cp_ref*(T_B      - A.T_ref); ...
+            A.h_ref + A.cp_ref*(T_B_isen - A.T_ref) ...
+        elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+            tablelookup(A.T_TLU1, A.h_TLU1, T_A,      interpolation = linear, extrapolation = linear); ...
+            tablelookup(A.T_TLU1, A.h_TLU1, T_B,      interpolation = linear, extrapolation = linear); ...
+            tablelookup(A.T_TLU1, A.h_TLU1, T_B_isen, interpolation = linear, extrapolation = linear) ...
+        else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+            tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_A,      p_A, interpolation = linear, extrapolation = linear); ...
+            tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_B,      p_B, interpolation = linear, extrapolation = linear); ...
+            tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_B_isen, p_B, interpolation = linear, extrapolation = linear) ...
+        end;
+
+    % Specific total enthalpy
+    ht_A      = h_A      + (mdot_A/area_A/rho_A     )^2/2;
+    ht_B      = h_B      + (mdot_B/area_B/rho_B     )^2/2;
+    ht_B_isen = h_B_isen + (mdot_B/area_B/rho_B_isen)^2/2;
+
+    % Integral of dh/T table lookup (for semiperfect gas only)
+    [int_dh_T_A, int_dh_T_B_isen] = ...
+        if A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+            tablelookup(A.log_T_TLU1, A.int_dh_T_TLU1, log_T_A,      interpolation = linear, extrapolation = linear); ...
+            tablelookup(A.log_T_TLU1, A.int_dh_T_TLU1, log_T_B_isen, interpolation = linear, extrapolation = linear) ...
+        else ...
+            {1, 'kJ/(kg*K)'}; ...
+            {1, 'kJ/(kg*K)'} ...
+        end;
+
+    % Specific entropy table lookup (for real gas only)
+    [s_A, s_B_isen] = ...
+        if A.gas_spec == foundation.enum.gas_spec.real_gas, ...
+            tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.s_TLU2, log_T_A,      log_p_A, interpolation = linear, extrapolation = linear); ...
+            tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.s_TLU2, log_T_B_isen, log_p_B, interpolation = linear, extrapolation = linear) ...
+        else ...
+            {1, 'kJ/(kg*K)'}; ...
+            {1, 'kJ/(kg*K)'} ...
+        end;
+
+    % Shaft speed
+    omega = R.w - C.w;
+
+
+
+    % Actual and isentropic change in specific total enthalpy
+    delta_ht      = ht_A - ht_B;
+    delta_ht_isen = ht_A - ht_B_isen;
+
+    % Smoothed positive value of shaft speed
+    omega_pos = (omega + sqrt(omega^2 + omega_threshold^2))/2;
+end
+
+%%%%% EDITED TO EXPOSE PRESSURE RATIO
+intermediates
+    % Pressure ratio
+    pressure_ratio = p_A/p_B;
+end
+%%%%%%%%%%%%%%
+
+intermediates (ExternalAccess = none)
+    % Beta variables for test accessibility via wrapper
+    beta_mdot_2_log = beta_mdot_2;
+    beta_eta_2_log = beta_eta_2;
+end
+
+%%%%%%%%%%%%% Edited %%%%%%%%%%%%%
+variables (Access = protected)
+    p_reference           = {0.101325, 'MPa'}; % Reference pressure for corrected flow
+    T_reference           = {288.15,   'K'  }; % Reference temperature for corrected flow
+end
+
+if ref_from_init == true
+    equations(Initial = true)
+        p_reference == p_A;
+        T_reference == T_A;
+    end
+equations
+    der(p_reference) == 0;
+    der(T_reference) == 0;
+end
+else
+equations
+    p_reference == p_ref;
+    T_reference == T_ref;
+end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% For logging
+intermediates (Access = private)
+    mdot_corrected        = mdot_A * sqrt(T_A/T_reference) / (p_A/p_reference); % Corrected mass flow rate
+    omega_corrected       = omega / sqrt(T_A/T_reference);                      % Corrected shaft speed
+    mechanical_power      = torque * omega;                                     % Shaft power
+    fluid_power           = mdot_A * delta_ht;                                  % Power extracted from gas flow
+    isentropic_efficiency = isentropic_efficiency_;                             % Isentropic efficiency
+    inlet_velocity        = mdot_A / rho_A / area_A;                            % Inlet flow velocity
+    outlet_velocity       = mdot_B / rho_B / area_B;                            % Outlet flow velocity
+end
+
+annotations
+    mdot_corrected                    : LoggingUnit = 'kg/s';
+    omega_corrected                   : LoggingUnit = 'rpm';
+    [mechanical_power, fluid_power]   : LoggingUnit = 'kW';
+    isentropic_efficiency             : LoggingUnit = '1';
+    [inlet_velocity, outlet_velocity] : LoggingUnit = 'm/s';
+end
+
+equations
+    % Mass balance
+    mdot_A + mdot_B == 0;
+
+    % Energy balance
+    Phi_A + Phi_B - fluid_power == 0;
+
+    % Power balance
+    torque * omega_pos == mechanical_efficiency * mdot_A * delta_ht;
+
+    % Isentropic efficiency
+    delta_ht == isentropic_efficiency * delta_ht_isen;
+
+    % Isentropic relation
+    if A.gas_spec == foundation.enum.gas_spec.perfect_gas
+        A.cp_ref*log_T_A - A.Z*A.R*log_p_A == A.cp_ref*log_T_B_isen - A.Z*A.R*log_p_B;
+    elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas
+        int_dh_T_A - A.Z*A.R*log_p_A == int_dh_T_B_isen - A.Z*A.R*log_p_B;
+    else % A.gas_spec == foundation.enum.gas_spec.real_gas
+        s_A == s_B_isen;
+    end
+
+%     % Run-time variable checks
+%     let
+%         % Indicator variables for the valid region of the property tables
+%         [indicator_pT_A, indicator_pT_B] = ...
+%             if (A.gas_spec == foundation.enum.gas_spec.real_gas) && (A.pT_region_flag == foundation.enum.pT_region_G.validity_matrix), ...
+%                 tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, A.T, A.p, interpolation = linear, extrapolation = linear); ...
+%                 tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, B.T, B.p, interpolation = linear, extrapolation = linear) ...
+%             else ...
+%                 1; ...
+%                 1 ...
+%             end;
+%     in
+%         % Pressure and temperature must be within the valid region
+%         assert(indicator_pT_A > 0, message('physmod:simscape:library:gas:PressureTemperaturePortValidRegion', 'A'), Action = A.properties_range_check)
+%         assert(A.p >= A.p_min, message('physmod:simscape:library:gas:PressureMinValid', 'A'), Action = A.properties_range_check)
+%         assert(A.p <= A.p_max, message('physmod:simscape:library:gas:PressureMaxValid', 'A'), Action = A.properties_range_check)
+%         assert(A.T >= A.T_min, message('physmod:simscape:library:gas:TemperatureMinValid', 'A'), Action = A.properties_range_check)
+%         assert(A.T <= A.T_max, message('physmod:simscape:library:gas:TemperatureMaxValid', 'A'), Action = A.properties_range_check)
+%         assert(indicator_pT_B > 0, message('physmod:simscape:library:gas:PressureTemperaturePortValidRegion', 'B'), Action = A.properties_range_check)
+%         assert(B.p >= A.p_min, message('physmod:simscape:library:gas:PressureMinValid', 'B'), Action = A.properties_range_check)
+%         assert(B.p <= A.p_max, message('physmod:simscape:library:gas:PressureMaxValid', 'B'), Action = A.properties_range_check)
+%         assert(B.T >= A.T_min, message('physmod:simscape:library:gas:TemperatureMinValid', 'B'), Action = A.properties_range_check)
+%         assert(B.T <= A.T_max, message('physmod:simscape:library:gas:TemperatureMaxValid', 'B'), Action = A.properties_range_check)
+%     end
+end
+
+% Internal components that calculate energy convection at ports A and B
+components (ExternalAccess = none)
+    convection_A = foundation.gas.port_convection(flow_area = area_A);
+    convection_B = foundation.gas.port_convection(flow_area = area_B);
+end
+connections
+    connect(A, convection_A.port)
+    connect(B, convection_B.port)
+end
+
+% Equate variables for internal components that calculate energy convection at ports A and B
+equations
+    convection_A.mdot == mdot_A;
+    convection_A.Phi  == Phi_A;
+    convection_B.mdot == mdot_B;
+    convection_B.Phi  == Phi_B;
+
+    convection_A.ht_I == convection_B.ht_I;
+    convection_B.ht_I == ht_B;
+end
+
+end 

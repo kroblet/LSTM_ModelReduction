@@ -1,8 +1,12 @@
 % initial conditions
 % height = 465;
+fixedStepSize = 0.1;
+sampleTime = 1;
+Qin = [2000 2000 3100 3100 3600 3600 4100 4100 4600 4600 5100 5100 5100 5100];
+Qin_time = [0 66.6667 83.3333 150.0000 166.6667 233.3333 250.0000 316.6667 333.3333 400.0000 416.6667 483.3333 500.0000 566.6667];
+
 height = 0;
-
-
+g= 9.81; % m/s2 
 [T,a,P,rho,nu] = atmosisa(height);
 
 initConditions.Temperature = T; % K
@@ -121,10 +125,41 @@ rotor.inertia2blades = ...
     2*rotor.mass/rotor.bladeNum*rotor.diameter^2/12;
 rotor.inertia = rotor.bladeNum/2 * rotor.inertia2blades;
 rotor.powerCoeff = 0.43; % rotor's power coefficient
-rotor.thrustCoeff = 0.08; % rotor's torque coefficient
+rotor.thrustCoeff = 0.8; % rotor's torque coefficient
 rotor.rpm = 257;
+rotor.area = pi*rotor.diameter^2/4;
 
+% chassis
+chassis.mass = 6000; % kg
 
+% LSTM rom
+load meanTrain.mat
+load stdTrain.mat
+rom.mean.h = meanTrain(1);
+rom.mean.Qin = meanTrain(2);
+rom.mean.AirMassFlow = meanTrain(3);
+rom.mean.fptRPM = meanTrain(4);
+rom.mean.ggtRPM = meanTrain(5);
+rom.mean.power =  meanTrain(6);
+rom.mean.T3 = meanTrain(7);
+rom.mean.p2 = meanTrain(8);
 
+rom.std.h = stdTrain(1);
+rom.std.Qin = stdTrain(2);
+rom.std.AirMassFlow = stdTrain(3);
+rom.std.fptRPM = stdTrain(4);
+rom.std.ggtRPM = stdTrain(5);
+rom.std.power = stdTrain(6);
+rom.std.T3 = stdTrain(7);
+rom.std.p2 = stdTrain(8);
 
+rom.init.h = 1.5767;
+rom.init.Qin = 1.1079;
+rom.init.AirMassFlow = -2.1875;
+rom.init.fptRPM = -1.7093;
+rom.init.ggtRPM = -1.7263;
+rom.init.power = -1.4515;
+rom.init.T3 = -1.5059;
+rom.init.p2 = -2.0145;
+rom.init.timeCutOff = 10;
 

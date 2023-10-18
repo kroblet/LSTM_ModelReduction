@@ -1,0 +1,444 @@
+component pipe
+    % Pipe (G) : 2.5
+    % This block models pipe flow dynamics in a gas network due to viscous
+    % friction losses and convective heat transfer between the gas and the pipe
+    % wall. The pipe contains a constant volume of gas. Pressure and
+    % temperature evolve based on the dynamic compressibility and thermal
+    % capacity of this gas volume. Choking occurs when the outlet flow reaches
+    % the speed of sound.
+    %
+    % Ports A and B are the gas conserving ports associated with the pipe inlet
+    % and outlet. Port H is the thermal conserving port associated with the
+    % pipe wall.
+
+    % Copyright 2016-2022 The MathWorks, Inc.
+
+    nodes
+        A = foundation.gas.gas;         % A:left
+        B = foundation.gas.gas;         % B:right
+        H = foundation.thermal.thermal; % H:left
+    end
+
+    parameters
+        steady_state = true; % Steady-state equations
+        length       = {5,     'm'  }; % Pipe length
+        area         = {0.01,  'm^2'}; % Cross-sectional area
+        Dh           = {0.1,   'm'  }; % Hydraulic diameter
+        length_add   = {0.1,   'm'  }; % Aggregate equivalent length of local resistances
+        roughness    = {15e-6, 'm'  }; % Internal surface absolute roughness
+        Re_lam       = {2000,  '1'  }; % Laminar flow upper Reynolds number limit
+        Re_tur       = {4000,  '1'  }; % Turbulent flow lower Reynolds number limit
+        shape_factor = {64,    '1'  }; % Laminar friction constant for Darcy friction factor
+        Nu_lam       = {3.66,  '1'  }; % Nusselt number for laminar flow heat transfer
+    end
+    parameters (ExternalAccess = none)
+        steady_state_init = true;  % Steady-state initialization
+        p_init = {0.101325, 'MPa'}; % Initial gas pressure
+        T_init = {293.15,   'K'  }; % Initial gas temperature
+    end
+
+    % Parameter groups
+    annotations
+        UILayout = [
+        UIGroup('physmod:simscape:library:tabs:Geometry', ...
+            length, area, Dh)
+        UIGroup('physmod:simscape:library:tabs:FrictionAndHeatTransfer', ...
+            length_add, roughness, Re_lam, Re_tur, shape_factor, Nu_lam)
+        UIGroup('Initial Conditions', ...
+            steady_state_init, p_init, T_init)]
+    end
+
+    parameters (Access = private)
+        choked_tol   = {0.02, '1'};        % Tolerance on choked pressure for smooth transition to choked flow
+        volume       = area*length;        % Pipe volume
+        surface_area = (4*area/Dh)*length; % Pipe surface area
+    end
+
+    % Parameter checks
+    equations
+        assert(length > 0)
+        assert(area > 0)
+        assert(Dh > 0)
+        assert(length_add >= 0)
+        assert(roughness > 0)
+        assert(Re_lam > 1)
+        assert(Re_tur > Re_lam)
+        assert(shape_factor > 0)
+        assert(Nu_lam > 0)
+        assert(choked_tol > 0)
+    end
+
+    % Replace differential variable priorities with "none" when initializing at steady-state
+    if ~steady_state % transient
+        annotations
+            steady_state_init : ExternalAccess = modify;
+        end
+        if ~steady_state_init % transient initialisation
+            annotations
+                [p_init, T_init] : ExternalAccess = modify;
+            end
+            parameters (Access = private)
+                pT_priority = priority.high;
+            end
+        else % steady-state initialisation
+            parameters (Access = private)
+                pT_priority = priority.none;
+            end
+        end
+    else % steady-state
+        parameters (Access = private)
+            pT_priority = priority.none;
+        end
+    end
+
+    variables (Access = protected)
+        mdot_A = {0, 'kg/s'}; % Mass flow rate into port A
+        mdot_B = {0, 'kg/s'}; % Mass flow rate into port B
+        Phi_A  = {0, 'kW'  }; % Energy flow rate into port A
+        Phi_B  = {0, 'kW'  }; % Energy flow rate into port B
+        Q_H    = {0, 'kW'  }; % Heat flow rate into port H
+
+        p_I = {value = p_init, priority = pT_priority}; % Pressure of gas volume
+        T_I = {value = T_init, priority = pT_priority}; % Temperature of gas volume
+    end
+
+    variables (Access = protected, ExternalAccess = none)
+        p_A  = {0.1, 'MPa'}; % Pressure at port A including choking effects
+        p_B  = {0.1, 'MPa'}; % Pressure at port B including choking effects
+        T_AI = {300, 'K'  }; % Temperature for adiabatic relation between nodes A and I
+        T_BI = {300, 'K'  }; % Temperature for adiabatic relation between nodes A and I
+    end
+
+    branches
+        mdot_A : A.mdot -> *;
+        mdot_B : B.mdot -> *;
+        Phi_A  : A.Phi  -> *;
+        Phi_B  : B.Phi  -> *;
+        Q_H    : H.Q    -> *;
+    end
+
+    intermediates (Access = private, ExternalAccess = none)
+        % Log temperature
+        log_T_AI = simscape.function.logProtected(T_AI/A.T_unit, 1);
+        log_T_BI = simscape.function.logProtected(T_BI/A.T_unit, 1);
+        log_T_I  = simscape.function.logProtected(T_I /A.T_unit, 1);
+
+        % Log pressure
+        log_p_A = simscape.function.logProtected(p_A/A.p_unit, 1);
+        log_p_B = simscape.function.logProtected(p_B/A.p_unit, 1);
+        log_p_I = simscape.function.logProtected(p_I/A.p_unit, 1);
+
+        % Specific heat at constant pressure (for perfect and semiperfect gas)
+        cp_I = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.cp_ref ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.cp_TLU1, T_I, interpolation = linear, extrapolation = linear) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                {1, 'kJ/(kg*K)'} ...
+            end;
+
+        % Derivative of density and density * internal energy
+        % with respect to pressure and temperature (for real gas)
+        % Use log-space to improve accuracy
+        [drho_dp_I, drho_dT_I, drhou_dp_I, drhou_dT_I] = ...
+            if A.gas_spec == foundation.enum.gas_spec.real_gas, ...
+                exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_drho_dp_TLU2, log_T_I, log_p_I, interpolation = linear, extrapolation = linear)) * A.drho_dp_unit; ...
+                -exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_drho_dT_TLU2, log_T_I, log_p_I, interpolation = linear, extrapolation = linear)) * A.drho_dT_unit; ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.drhou_dp_TLU2, T_I, p_I, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.drhou_dT_TLU2, T_I, p_I, interpolation = linear, extrapolation = linear) ...
+            else ...
+                A.drho_dp_unit; ...
+                A.drho_dT_unit; ...
+                1; ...
+                {1, 'kJ/(m^3*K)'} ...
+            end;
+
+        % Partial derivatives of mass and internal energy
+        % with respect to pressure and temperature at constant volume
+        [dMdp, dMdT, dUdp, dUdT] = ...
+            if A.gas_spec ~= foundation.enum.gas_spec.real_gas, ...
+                volume * rho_I / p_I; ...
+                -volume * rho_I / T_I; ...
+                volume * (h_I / (A.Z * A.R * T_I) - 1); ...
+                volume * rho_I * (cp_I - h_I/T_I) ...
+            else ...
+                volume * drho_dp_I; ...
+                volume * drho_dT_I; ...
+                volume * drhou_dp_I; ...
+                volume * drhou_dT_I ...
+            end;
+
+        % Thermal equation of state
+        % Use log-space to improve accuracy
+        [rho_AI, rho_BI] = ...
+            if A.gas_spec ~= foundation.enum.gas_spec.real_gas, ...
+                exp(log_p_A - A.log_ZR - log_T_AI) * A.rho_unit; ...
+                exp(log_p_B - A.log_ZR - log_T_BI) * A.rho_unit ...
+            else ...
+                exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_AI, log_p_A, interpolation = linear, extrapolation = linear)) * A.rho_unit; ...
+                exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_BI, log_p_B, interpolation = linear, extrapolation = linear)) * A.rho_unit ...
+            end;
+
+        % Caloric equation of state
+        [h_AI, h_BI] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.h_ref + A.cp_ref*(T_AI - A.T_ref); ...
+                A.h_ref + A.cp_ref*(T_BI - A.T_ref) ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.h_TLU1, T_AI, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU1, A.h_TLU1, T_BI, interpolation = linear, extrapolation = linear) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_AI, p_A, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_BI, p_B, interpolation = linear, extrapolation = linear) ...
+            end;
+
+        % Speed of sound
+        T_AI_limited = if ge(T_AI, A.T_min), T_AI else A.T_min end;
+        T_BI_limited = if ge(T_BI, A.T_min), T_BI else A.T_min end;
+        [a_AI, a_BI] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                sqrt(A.cp_ref / A.cv_ref * A.Z * A.R * T_AI_limited); ...
+                sqrt(A.cp_ref / A.cv_ref * A.Z * A.R * T_BI_limited) ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.a_TLU1, T_AI_limited, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU1, A.a_TLU1, T_BI_limited, interpolation = linear, extrapolation = linear) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.a_TLU2, T_AI_limited, p_A, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.a_TLU2, T_BI_limited, p_B, interpolation = linear, extrapolation = linear) ...
+            end;
+
+        % Dynamic viscosity
+        [mu_A_in, mu_B_in, mu_I] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.mu_ref; ...
+                A.mu_ref; ...
+                A.mu_ref ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.mu_TLU1, A.T, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.mu_TLU1, B.T, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.mu_TLU1, T_I, interpolation = linear, extrapolation = nearest) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.mu_TLU2, A.T, A.p, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.mu_TLU2, B.T, B.p, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.mu_TLU2, T_I, p_I, interpolation = linear, extrapolation = nearest) ...
+            end;
+
+        % Thermal conductivity
+        [k_A_in, k_B_in, k_I] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.k_ref; ...
+                A.k_ref; ...
+                A.k_ref ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.k_TLU1, A.T, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.k_TLU1, B.T, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.k_TLU1, T_I, interpolation = linear, extrapolation = nearest) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.k_TLU2, A.T, A.p, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.k_TLU2, B.T, A.p, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.k_TLU2, T_I, p_I, interpolation = linear, extrapolation = nearest) ...
+            end;
+
+        % Prandtl number
+        [Pr_A_in, Pr_B_in, Pr_I] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.Pr_ref; ...
+                A.Pr_ref; ...
+                A.Pr_ref ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.Pr_TLU1, A.T, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.Pr_TLU1, B.T, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.Pr_TLU1, T_I, interpolation = linear, extrapolation = nearest) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.Pr_TLU2, A.T, A.p, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.Pr_TLU2, B.T, B.p, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.Pr_TLU2, T_I, p_I, interpolation = linear, extrapolation = nearest) ...
+            end;
+
+        % Frictional pressure losses
+        pressure_loss_AI = foundation.gas.elements.pipe_friction(mdot_A, rho_I, mu_I, ...
+            area, Dh, (length+length_add)/2, roughness/Dh, Re_lam, Re_tur, shape_factor);
+
+        pressure_loss_BI = foundation.gas.elements.pipe_friction(mdot_B, rho_I, mu_I, ...
+            area, Dh, (length+length_add)/2, roughness/Dh, Re_lam, Re_tur, shape_factor);
+
+        % Frictional pressure losses when flow is choked at outlet
+        pressure_loss_AI_choked = foundation.gas.elements.pipe_friction(-rho_AI*a_AI*area, rho_I, mu_I, ...
+            area, Dh, (length+length_add)/2, roughness/Dh, Re_lam, Re_tur, shape_factor);
+
+        pressure_loss_BI_choked = foundation.gas.elements.pipe_friction(-rho_BI*a_BI*area, rho_I, mu_I, ...
+            area, Dh, (length+length_add)/2, roughness/Dh, Re_lam, Re_tur, shape_factor);
+
+        % Change in flow velocity
+        delta_vel_AI = (1/rho_I - 1/rho_AI)*mdot_A/area;
+        delta_vel_BI = (1/rho_I - 1/rho_BI)*mdot_B/area;
+        delta_vel_pos_AI = sqrt(delta_vel_AI^2 + (0.001*a_AI)^2);
+        delta_vel_pos_BI = sqrt(delta_vel_BI^2 + (0.001*a_BI)^2);
+
+        % Change in flow velocity when flow is choked at outlet
+        delta_vel_AI_choked = (rho_AI/rho_I - 1)*a_AI;
+        delta_vel_BI_choked = (rho_BI/rho_I - 1)*a_BI;
+        delta_vel_pos_AI_choked = sqrt(delta_vel_AI^2 + (0.001*a_AI)^2);
+        delta_vel_pos_BI_choked = sqrt(delta_vel_BI^2 + (0.001*a_BI)^2);
+
+        % Pressure difference assuming no choked flow
+        Dp_AI_unchoked = A.p - p_I;
+        Dp_BI_unchoked = B.p - p_I;
+
+        % Pressure difference assuming choked flow
+        Dp_AI_choked = -delta_vel_pos_AI_choked*rho_AI*a_AI + pressure_loss_AI_choked;
+        Dp_BI_choked = -delta_vel_pos_BI_choked*rho_BI*a_BI + pressure_loss_BI_choked;
+
+        % Pressure difference with smooth transition between unchoked and choked flow
+        Dp_AI = ...
+            if ge(mdot_A, 0), ...
+                Dp_AI_unchoked ...
+            else ...
+                simscape.function.blend(Dp_AI_unchoked, Dp_AI_choked, -(1-choked_tol)*Dp_AI_choked, -Dp_AI_choked, -Dp_AI_unchoked) ...
+            end;
+
+        Dp_BI = ...
+            if ge(mdot_B, 0), ...
+                Dp_BI_unchoked ...
+            else ...
+                simscape.function.blend(Dp_BI_unchoked, Dp_BI_choked, -(1-choked_tol)*Dp_BI_choked, -Dp_BI_choked, -Dp_BI_unchoked) ...
+            end;
+
+        % Average mass flow rate from port A to port B
+        mdot_avg = (mdot_A - mdot_B)/2;
+        Re_avg = (mdot_avg * Dh) / (area * mu_I);
+
+        % Convective heat transfer between pipe wall and gas
+        Q_AB = foundation.gas.elements.pipe_convection(mdot_avg, A.T, H.T, ...
+            (mu_A_in + mu_I)/2, (k_A_in + k_I)/2, (Pr_A_in + Pr_I)/2, ...
+            area, Dh, surface_area, roughness/Dh, Re_lam, Re_tur, Nu_lam);
+
+        Q_BA = foundation.gas.elements.pipe_convection(-mdot_avg, B.T, H.T, ...
+            (mu_B_in + mu_I)/2, (k_B_in + k_I)/2, (Pr_B_in + Pr_I)/2, ...
+            area, Dh, surface_area, roughness/Dh, Re_lam, Re_tur, Nu_lam);
+
+        Q_conv = simscape.function.blend(Q_BA, Q_AB, -Re_lam/100, Re_lam/100, Re_avg);
+
+        % Conductive heat transfer between pipe wall and gas
+        Q_cond = k_I * surface_area / Dh * (H.T - T_I);
+    end
+
+    % For logging
+    intermediates (Access = private)
+        % Thermal equation of state
+        % Use log-space to improve accuracy
+        rho_I = ...
+            if A.gas_spec ~= foundation.enum.gas_spec.real_gas, ...
+                exp(log_p_I - A.log_ZR - log_T_I) * A.rho_unit ...
+            else ...
+                exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_I, log_p_I, interpolation = linear, extrapolation = linear)) * A.rho_unit ...
+            end; % Density of gas volume
+
+        % Caloric equation of state
+        h_I = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.h_ref + A.cp_ref*(T_I - A.T_ref) ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.h_TLU1, T_I, interpolation = linear, extrapolation = linear) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_I, p_I, interpolation = linear, extrapolation = linear) ...
+            end; % Specific enthalpy of gas volume
+
+        Mach_A = (if ge(mdot_A, 0), mdot_A else -mdot_A end) / (rho_AI*a_AI*area); % Mach number at port A
+        Mach_B = (if ge(mdot_B, 0), mdot_B else -mdot_B end) / (rho_BI*a_BI*area); % Mach number at port B
+    end
+
+    % Balance inflow and outflow at t = 0 when initializing at steady-state
+    if steady_state
+        equations
+            mdot_A + mdot_B == 0;
+            Phi_A + Phi_B + Q_H == 0;
+        end
+    else
+        if steady_state_init
+            equations (Initial = true)
+                mdot_A + mdot_B == 0;
+                Phi_A + Phi_B + Q_H == 0;
+            end
+        end
+
+        equations
+            % Mass conservation
+            der(p_I)*dMdp + der(T_I)*dMdT == mdot_A + mdot_B;
+
+            % Energy conservation
+            der(p_I)*dUdp + der(T_I)*dUdT == Phi_A + Phi_B + Q_H;
+        end
+    end
+
+    equations
+        % Heat transfer
+        Q_H == Q_conv + Q_cond;
+
+        % Momentum balance
+        p_A - p_I == delta_vel_pos_AI*mdot_A/area + pressure_loss_AI;
+        p_B - p_I == delta_vel_pos_BI*mdot_B/area + pressure_loss_BI;
+
+        % Solve for p_A and p_B based on smooth transition between
+        % unchoked and choked pressure difference
+        Dp_AI == p_A - p_I;
+        Dp_BI == p_B - p_I;
+
+        % Adiabatic process for each half of pipe
+        h_AI + (mdot_A/area/rho_AI)^2/2 == h_I + (mdot_A/area/rho_I)^2/2;
+        h_BI + (mdot_B/area/rho_BI)^2/2 == h_I + (mdot_B/area/rho_I)^2/2;
+
+        let
+            % Indicator variables for the valid region of the property tables
+            [indicator_pT_A, indicator_pT_B, indicator_pT_I] = ...
+                if (A.gas_spec == foundation.enum.gas_spec.real_gas) && (A.pT_region_flag == foundation.enum.pT_region_G.validity_matrix), ...
+                    tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, A.T, A.p, interpolation = linear, extrapolation = linear); ...
+                    tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, B.T, B.p, interpolation = linear, extrapolation = linear); ...
+                    tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, T_I, p_I, interpolation = linear, extrapolation = linear) ...
+                else ...
+                    1; ...
+                    1; ...
+                    1 ...
+                end;
+        in
+            % Pressure and temperature must be within the valid region
+            assert(indicator_pT_A > 0, message('physmod:simscape:library:gas:PressureTemperaturePortValidRegion', 'A'))
+            assert(A.p >= A.p_min, message('physmod:simscape:library:gas:PressureMinValid', 'A'))
+            assert(A.p <= A.p_max, message('physmod:simscape:library:gas:PressureMaxValid', 'A'))
+            assert(A.T >= A.T_min, message('physmod:simscape:library:gas:TemperatureMinValid', 'A'))
+            assert(A.T <= A.T_max, message('physmod:simscape:library:gas:TemperatureMaxValid', 'A'))
+            assert(indicator_pT_B > 0, message('physmod:simscape:library:gas:PressureTemperaturePortValidRegion', 'B'))
+            assert(B.p >= A.p_min, message('physmod:simscape:library:gas:PressureMinValid', 'B'))
+            assert(B.p <= A.p_max, message('physmod:simscape:library:gas:PressureMaxValid', 'B'))
+            assert(B.T >= A.T_min, message('physmod:simscape:library:gas:TemperatureMinValid', 'B'))
+            assert(B.T <= A.T_max, message('physmod:simscape:library:gas:TemperatureMaxValid', 'B'))
+            assert(indicator_pT_I > 0, message('physmod:simscape:library:gas:PressureTemperatureVolumeValidRegion'))
+            assert(p_I >= A.p_min)
+            assert(p_I <= A.p_max)
+            assert(T_I >= A.T_min)
+            assert(T_I <= A.T_max)
+        end
+    end
+
+    % Internal components that calculate energy convection at ports A and B
+    components (ExternalAccess = none)
+        convection_A = foundation.gas.port_convection(flow_area = area);
+        convection_B = foundation.gas.port_convection(flow_area = area);
+    end
+    connections
+        connect(A, convection_A.port)
+        connect(B, convection_B.port)
+    end
+
+    % Equate variables for internal components that calculate energy convection at ports A and B
+    equations
+        convection_A.mdot == mdot_A;
+        convection_A.Phi  == Phi_A;
+        convection_A.ht_I == h_I + (mdot_A/area/rho_I)^2/2;
+        convection_B.mdot == mdot_B;
+        convection_B.Phi  == Phi_B;
+        convection_B.ht_I == h_I + (mdot_B/area/rho_I)^2/2;
+    end
+
+end
