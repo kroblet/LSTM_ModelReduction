@@ -1,4 +1,4 @@
-function [reorderedData, reorderedNames] = resampleSimulationData(out,sampleStep)
+function [reorderedData, reorderedNames] = resampleSimulationData(out,sampleStep, firstNames)
 %PREPARETRAININGDATA takes as input the Simulink.SimulationOutputs and
 %returns a cell array with the trainning inputs and outputs
     cutoff = 1;
@@ -26,7 +26,6 @@ function [reorderedData, reorderedNames] = resampleSimulationData(out,sampleStep
     
     end
 %% Reorder data
-firstNames = [{'Altitude', 'Qin'}];
 [reorderedData, reorderedNames] = reorderData(data, names{1}, firstNames);
 
 end

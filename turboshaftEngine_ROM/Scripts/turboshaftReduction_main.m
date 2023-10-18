@@ -8,7 +8,7 @@ simStopTime = 500; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Wavelet analysis
-load_system(modelName)
+% load_system(modelName)
 % Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
 % Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
 % outSim = sim(modelName);
@@ -26,16 +26,16 @@ load_system(modelName)
 
 %% Generate Simulation Scenarios
 initialScenarioVector = [2e3:0.5e3:5e3];
-shaftSpeedStates = {{initialScenarioVector,simStopTime},
+referenceHeatStates = {{initialScenarioVector,simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+150],simStopTime},                       
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+300],simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+450], simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+600],simStopTime}, 
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+650], simStopTime}};
 
-for ix=1:numel(shaftSpeedStates)
-    generateInputs(scenarioDir, shaftSpeedStates{ix}{1},...
-    shaftSpeedStates{ix}{2}, ix, 'heatIn')
+for ix=1:numel(referenceHeatStates)
+    generateInputs(scenarioDir, referenceHeatStates{ix}{1},...
+    referenceHeatStates{ix}{2}, ix, 'heatIn')
 end
 
 
@@ -51,14 +51,14 @@ for ix=1:numCases
     fileName = split(fileList{ix},'.');
     scenario{ix} = load(fileList{ix});
     aux = split(fileName{1},'_');
-    simStopTime = aux{end};
+    scenarioSimStopTime = aux{end};
     simIn(ix) = Simulink.SimulationInput(modelName);
 
-    simIn(ix) = simIn(ix).setModelParameter('StopTime', simStopTime);
+    simIn(ix) = simIn(ix).setModelParameter('StopTime', scenarioSimStopTime);
     % Initialize compressor's RPM with respect to the Simulation scenarios
-    simIn(ix) = setVariable(simIn(ix), 'Qin', scenario{ix}.shaftSpeedRef{1}.Values.Data', ...
+    simIn(ix) = setVariable(simIn(ix), 'Qin', scenario{ix}.stateVecRef{1}.Values.Data', ...
         'Workspace', modelName);    
-    simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.shaftSpeedRef{1}.Values.Time', ...
+    simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.stateVecRef{1}.Values.Time', ...
         'Workspace', modelName);
 end
 
@@ -67,49 +67,18 @@ simOut = parsim(simIn);
 
 %% Resample results
 sampleTime = 1; % s
-[resampledData, sigNames] = resampleSimulationData(simOut,sampleTime);
+commandSignals = [{'Altitude', 'Qin'}];
+[resampledData, sigNames] = resampleSimulationData(simOut,sampleTime,commandSignals);
 
 %% Visualize
-visualizeTrainData(reorderedData,reorderedNames, 'Resampled Data')
+visualizeTrainData(resampledData,sigNames, 'Resampled Data')
 
 
-%% Partition
+%% Prepare data normalization
 trainPercentage = 1; % the percentage of the data that they will be used for training
                        % the rest will be used for test
+[dataTrain, dataTest, meanTrain, stdTrain] = prepareDataNormalization(resampledData, trainPercentage);
 
-[dataTrain, dataTest] = trainPartitioning(reorderedData, trainPercentage);
-
-%% Concat
-
-concatDataTrain = [];
-for ix=1:numel(dataTrain)
-    concatDataTrain = cat(2,concatDataTrain,dataTrain{ix}(:,:));
-end
-
-concatDataTest = [];
-for ix=1:numel(dataTest)
-    concatDataTest = cat(2,concatDataTest,dataTest{ix}(:,:));
-end
-
-%% Prepare
-XTrain = concatDataTrain;
-XVal = concatDataTest;
-
-if not(isempty(concatDataTest))
-YTrain = XTrain(2:end,:);
-YVal = XVal(2:end,:);
-end
-
-% Normalize training and validation data
-for ix=1:size(XTrain,1)
-    meanTrain(ix) = mean(XTrain(ix,:));
-    stdTrain(ix) = std(XTrain(ix,:));
-if not(isempty(concatDataTest))    
-    meanVal(ix) = mean(XVal(ix,:));
-    stdVal(ix) = std(XVal(ix,:));
-end
-
-end
 
 %% Normalize
 normalize = @(x,mu,sigma) (x - mu) ./ sigma;
@@ -134,14 +103,14 @@ for iy=1:size(dataTest,2)
 end
 
 %% Inspect Normalized Train Data
-visualizeTrainData(dataTrainNorm(:),reorderedNames, 'Train Data')
+visualizeTrainData(dataTrainNorm(:),sigNames, 'Train Data')
 
 
 %% NN Architecture
 
 numFeatures = length(sigNames);
-numResponses = length(sigNames)-length(firstNames);
-outStartIdx = length(firstNames)+1;
+numResponses = length(sigNames)-length(commandSignals);
+outStartIdx = length(commandSignals)+1;
 numHiddenUnits = 150;
 dropoutProbability = 0.2;
 initLearnRate = 1e-2;
