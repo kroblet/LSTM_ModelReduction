@@ -1,7 +1,7 @@
 %% Initialization
 proj = matlab.project.rootProject; % project root
-scenarioDir = fullfile(proj.RootFolder, 'turboshaftEngine_ROM', 'SimulationInput');
-simOutDir = fullfile(proj.RootFolder, 'turboshaftEngine_ROM', 'SimulationOutput');
+scenarioDir = fullfile(proj.RootFolder, 'turboshaftEngine', 'SimulationInput');
+simOutDir = fullfile(proj.RootFolder, 'turboshaftEngine', 'SimulationOutput');
 modelName = 'simpleHelicopter_toReduce';
 simStopTime = 500; % Simulation stop time in s
 
@@ -45,7 +45,7 @@ clearvars simIn
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
 scenario = {};
-simIn(ix:numCases) = Simulink.SimulationInput(modelName);
+simIn(1:numCases) = Simulink.SimulationInput(modelName);
 
 for ix=1:numCases
     fileName = split(fileList{ix},'.');
@@ -54,7 +54,6 @@ for ix=1:numCases
     scenarioSimStopTime = aux{end};
 
     simIn(ix) = simIn(ix).setModelParameter('StopTime', scenarioSimStopTime);
-    % Initialize compressor's RPM with respect to the Simulation scenarios
     simIn(ix) = setVariable(simIn(ix), 'Qin', scenario{ix}.stateVecRef{1}.Values.Data', ...
         'Workspace', modelName);    
     simIn(ix) = setVariable(simIn(ix),'Qin_time', scenario{ix}.stateVecRef{1}.Values.Time', ...
@@ -81,32 +80,32 @@ trainPercentage = 1; % the percentage of the data that they will be used for tra
 
 %% Normalize
 normalize = @(x,mu,sigma) (x - mu) ./ sigma;
-dataTrainNorm = [];
-for iy=1:size(dataTrain,2)
-    normTrainSep = [];
-    % Normalize train data
-    for ix=1:size(dataTrain{iy},1)
-        normTrainSep(ix,:) = normalize(dataTrain{iy}(ix,:),meanTrain(ix), stdTrain(ix));
-    end
-    dataTrainNorm{iy} = normTrainSep;
-end
-
-
-dataValNorm=[];
-for iy=1:size(dataTest,2)
-    normValSep = [];
-    for ix=1:size(dataTest{iy},1)
-        normValSep(ix,:) = normalize(dataTest{iy}(ix,:),meanVal(ix), stdVal(ix));
-    end
-    dataValNorm{iy} = normValSep;
-end
+dataTrainNorm = normalizeData(normalize, dataTrain, meanTrain, stdTrain)
+% dataTrainNorm = [];
+% for iy=1:size(dataTrain,2)
+%     normTrainSep = [];
+%     % Normalize train data
+%     for ix=1:size(dataTrain{iy},1)
+%         normTrainSep(ix,:) = normalize(dataTrain{iy}(ix,:),meanTrain(ix), stdTrain(ix));
+%     end
+%     dataTrainNorm{iy} = normTrainSep;
+% end
+% 
+% 
+% dataValNorm=[];
+% for iy=1:size(dataTest,2)
+%     normValSep = [];
+%     for ix=1:size(dataTest{iy},1)
+%         normValSep(ix,:) = normalize(dataTest{iy}(ix,:),meanVal(ix), stdVal(ix));
+%     end
+%     dataValNorm{iy} = normValSep;
+% end
 
 %% Inspect Normalized Train Data
 visualizeTrainData(dataTrainNorm(:),sigNames, 'Train Data')
 
 
 %% NN Architecture
-
 numFeatures = length(sigNames);
 numResponses = length(sigNames)-length(commandSignals);
 outStartIdx = length(commandSignals)+1;
@@ -120,7 +119,6 @@ learnDropPeriod = 200;
 layers = [
     sequenceInputLayer(numFeatures,"Name","input")
     lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
-    % lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
     % reluLayer("Name","relu")
@@ -145,7 +143,13 @@ if train
 end
 
 
-%%
+%% Compare reduced/original model
+reducedModel = 'simpleHelicopter_ROM';
+open_system(reducedModel)
+
+
+
+
 
 idx = 1;
 X = XTrainSep{idx};
