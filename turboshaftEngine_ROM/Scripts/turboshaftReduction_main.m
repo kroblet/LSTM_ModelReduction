@@ -23,17 +23,6 @@ load_system(modelName)
 % end
 
 
-%% Scenarios
-% run several operation points at several altitudes
-% load_system(modelName)
-% altitude = [0:500:5000];
-% 
-% numCases = length(altitude);
-% simIn(1:numCases) = Simulink.SimulationInput(modelName);
-% 
-% for ix=1:numCases
-%     simIn(ix) = simIn(ix).setBlockParameter([modelName,'/Altitude'],'Value', num2str(altitude(ix)));
-% end
 
 %% Generate Simulation Scenarios
 initialScenarioVector = [2e3:0.5e3:5e3];
@@ -52,14 +41,9 @@ end
 
 %% Generate Simulink Simulation Inputs
 load_system(modelName)
-
 clearvars simIn
-% run several operation points at several altitudes
-% altitude = [0:500:2000];
-
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
-% totCases = numCases*length(altitude);
 scenario = {};
 
 
@@ -83,12 +67,7 @@ simOut = parsim(simIn);
 
 %% Resample results
 sampleTime = 1; % s
-[resampledData, sigNamesCell] = resampleSimulationData(simOut,0.1);
-sigNames = sigNamesCell{1};
-
-%% Reorder data
-firstNames = [{'Altitude', 'Qin'}];
-[reorderedData, reorderedNames] = reorderData(resampledData, sigNames, firstNames);
+[resampledData, sigNames] = resampleSimulationData(simOut,sampleTime);
 
 %% Visualize
 visualizeTrainData(reorderedData,reorderedNames, 'Resampled Data')
