@@ -128,7 +128,6 @@ referenceModel = 'simpleHelicopter_reference';
 open_system(referenceModel)
 refSim = sim(referenceModel);
 
-
 reducedModel = 'simpleHelicopter_ROM';
 open_system(reducedModel)
 romSim = sim(reducedModel);
