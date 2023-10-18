@@ -80,27 +80,7 @@ trainPercentage = 1; % the percentage of the data that they will be used for tra
 
 %% Normalize
 normalize = @(x,mu,sigma) (x - mu) ./ sigma;
-dataTrainNorm = normalizeData(normalize, dataTrain, meanTrain, stdTrain)
-% dataTrainNorm = [];
-% for iy=1:size(dataTrain,2)
-%     normTrainSep = [];
-%     % Normalize train data
-%     for ix=1:size(dataTrain{iy},1)
-%         normTrainSep(ix,:) = normalize(dataTrain{iy}(ix,:),meanTrain(ix), stdTrain(ix));
-%     end
-%     dataTrainNorm{iy} = normTrainSep;
-% end
-% 
-% 
-% dataValNorm=[];
-% for iy=1:size(dataTest,2)
-%     normValSep = [];
-%     for ix=1:size(dataTest{iy},1)
-%         normValSep(ix,:) = normalize(dataTest{iy}(ix,:),meanVal(ix), stdVal(ix));
-%     end
-%     dataValNorm{iy} = normValSep;
-% end
-
+dataTrainNorm = normalizeData(normalize, dataTrain, meanTrain, stdTrain);
 %% Inspect Normalized Train Data
 visualizeTrainData(dataTrainNorm(:),sigNames, 'Train Data')
 
@@ -144,12 +124,19 @@ end
 
 
 %% Compare reduced/original model
+referenceModel = 'simpleHelicopter_reference';
+open_system(referenceModel)
+refSim = sim(referenceModel);
+
+
 reducedModel = 'simpleHelicopter_ROM';
 open_system(reducedModel)
+romSim = sim(reducedModel);
 
 
 
 
+%% 
 
 idx = 1;
 X = XTrainSep{idx};
