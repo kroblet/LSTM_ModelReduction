@@ -45,14 +45,13 @@ clearvars simIn
 fileList = listSimInpFiles(scenarioDir);
 numCases = length(fileList);
 scenario = {};
-
+simIn(ix:numCases) = Simulink.SimulationInput(modelName);
 
 for ix=1:numCases
     fileName = split(fileList{ix},'.');
     scenario{ix} = load(fileList{ix});
     aux = split(fileName{1},'_');
     scenarioSimStopTime = aux{end};
-    simIn(ix) = Simulink.SimulationInput(modelName);
 
     simIn(ix) = simIn(ix).setModelParameter('StopTime', scenarioSimStopTime);
     % Initialize compressor's RPM with respect to the Simulation scenarios
