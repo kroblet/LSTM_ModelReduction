@@ -127,16 +127,52 @@ end
 referenceModel = 'simpleHelicopter_reference';
 open_system(referenceModel)
 refSim = sim(referenceModel);
+refRunID = Simulink.sdi.Run.getLatest;
 
 reducedModel = 'simpleHelicopter_ROM';
 open_system(reducedModel)
 romSim = sim(reducedModel);
+romRunID = Simulink.sdi.Run.getLatest;
 
 
+%% Accuracy comparison
+import matlab.unittest.TestCase
+import Simulink.sdi.constraints.MatchesSignal
+import Simulink.sdi.constraints.MatchesSignalOptions
+% Create a test case:
+testCase = TestCase.forInteractiveUse;    
 
+% Set accepted tolerance
+relTol = 1e-1;
+
+% Compare different signals between ROM LSTM model and original model.
+for ix=1:length(sigNames)
+    basselineSig = refSim.logsout.getElement(sigNames{ix});
+    romSig = romSim.logsout.getElement(sigNames{ix});
+    testCase.verifyThat(romSig,MatchesSignal({basselineSig},'RelTol',relTol))
+end
+
+
+%% Visualize
+
+for ix=1:length(sigNames)
+% basselineSig = refSim.logsout.getElement(sigNames{ix});
+% romSig = romSim.logsout.getElement(sigNames{ix});
+
+refSigID = getSignalIDsByName(refRunID,sigNames{ix});
+romSigID = getSignalIDsByName(romRunID,sigNames{ix});
+sigNames{ix}
+diffResult = Simulink.sdi.compareSignals(refSigID,romSigID);
+
+Simulink.sdi.view
+
+end
+
+
+%% Performance comparison
+compareSimulationPerformance(refSim, romSim)
 
 %% 
-
 idx = 1;
 X = XTrainSep{idx};
 TY = TTrainSep{idx};
