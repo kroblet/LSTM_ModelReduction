@@ -1,7 +1,10 @@
-function compareSimulations(refOut,romOut)
+function compareSimulationPerformance(refOut,romOut)
 %COMPARESIMULATIONS Summary of this function goes here
 %   Detailed explanation goes here
 figure
+ax1 = subplot(2,1,1)
+ax2 = subplot(2,1,2)
+
 ref.init = refOut.SimulationMetadata.TimingInfo.InitializationElapsedWallTime;
 ref.execution = refOut.SimulationMetadata.TimingInfo.ExecutionElapsedWallTime;
 ref.total = refOut.SimulationMetadata.TimingInfo.TotalElapsedWallTime;
@@ -13,9 +16,16 @@ rom.total = romOut.SimulationMetadata.TimingInfo.TotalElapsedWallTime;
 reduced = [rom.init rom.execution rom.total];
 
 categories = categorical({'Initialization','Execution','Total'});
-bar(categories, [baseline;reduced])
-ylabel('Time(s)')
-grid on
+bar(ax1, categories, [baseline;reduced])
+ylabel(ax1,'Time(s)')
+legend(ax1, {'Simscape model', 'LSTM ROM'})
+grid(ax1,'on')
+
+timereduction = (baseline-reduced)./baseline.*100;
+bar(ax2, categories, timereduction)
+ylabel(ax2,'Time reduction %')
+grid(ax2,'on')
+
 
 end
 
