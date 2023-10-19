@@ -170,12 +170,9 @@ end
 
 
 %% Performance comparison
-
 compareSimulationPerformance(refSim, romSim)
 
-
 %% 
-
 idx = 1;
 X = XTrainSep{idx};
 TY = TTrainSep{idx};
