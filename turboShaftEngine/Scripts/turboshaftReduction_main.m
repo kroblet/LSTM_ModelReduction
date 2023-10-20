@@ -3,7 +3,7 @@ proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'turboshaftEngine', 'SimulationInput');
 simOutDir = fullfile(proj.RootFolder, 'turboshaftEngine', 'SimulationOutput');
 modelName = 'simpleHelicopter_toReduce';
-simStopTime = 500; % Simulation stop time in s
+simStopTime = 300; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
 
@@ -124,13 +124,17 @@ end
 
 
 %% Compare reduced/original model
+mode = 'Ramp';
+
 referenceModel = 'simpleHelicopter_reference';
 open_system(referenceModel)
+set_param([referenceModel,'/HeatIn'],'LabelModeActivechoice', mode)
 refSim = sim(referenceModel);
 refRunID = Simulink.sdi.Run.getLatest;
 
 reducedModel = 'simpleHelicopter_ROM';
 open_system(reducedModel)
+set_param([reducedModel,'/HeatIn'],'LabelModeActivechoice', mode)
 romSim = sim(reducedModel);
 romRunID = Simulink.sdi.Run.getLatest;
 
@@ -155,20 +159,20 @@ end
 
 %% Visualize
 
-for ix=1:length(sigNames)
-% basselineSig = refSim.logsout.getElement(sigNames{ix});
-% romSig = romSim.logsout.getElement(sigNames{ix});
-
-refSigID = getSignalIDsByName(refRunID,sigNames{ix});
-romSigID = getSignalIDsByName(romRunID,sigNames{ix});
-sigNames{ix}
-diffResult = Simulink.sdi.compareSignals(refSigID,romSigID);
-
+% for ix=1:length(sigNames)
+% % basselineSig = refSim.logsout.getElement(sigNames{ix});
+% % romSig = romSim.logsout.getElement(sigNames{ix});
+% 
+% refSigID = getSignalIDsByName(refRunID,sigNames{ix});
+% romSigID = getSignalIDsByName(romRunID,sigNames{ix});
+% sigNames{ix}
+% diffResult = Simulink.sdi.compareSignals(refSigID,romSigID);
+% 
+% Simulink.sdi.view
+% 
+% end
+Simulink.sdi.compareRuns(refRunID.id,romRunID.id)
 Simulink.sdi.view
-
-end
-
-
 %% Performance comparison
 compareSimulationPerformance(refSim, romSim)
 
