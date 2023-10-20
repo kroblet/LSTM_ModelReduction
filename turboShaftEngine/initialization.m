@@ -153,13 +153,23 @@ rom.std.power = stdTrain(6);
 rom.std.T3 = stdTrain(7);
 rom.std.p2 = stdTrain(8);
 
-rom.init.h = 1.5767;
-rom.init.Qin = 1.1079;
-rom.init.AirMassFlow = -2.1875;
-rom.init.fptRPM = -1.7093;
-rom.init.ggtRPM = -1.7263;
-rom.init.power = -1.4515;
-rom.init.T3 = -1.5059;
-rom.init.p2 = -2.0145;
-rom.init.timeColdStart = 10;
+% rom.init.h = 1.5767;
+% rom.init.Qin = 1.1079;
+% rom.init.AirMassFlow = -2.1875;
+% rom.init.fptRPM = -1.7093;
+% rom.init.ggtRPM = -1.7263;
+% rom.init.power = -1.4515;
+% rom.init.T3 = -1.5059;
+% rom.init.p2 = -2.0145;
+rom.init.timeColdStart = 20;
+
+rom.init.h = -0.8835;
+rom.init.Qin = -1.7563;
+rom.init.AirMassFlow = -1.8228;
+rom.init.fptRPM = -1.8896;
+rom.init.ggtRPM = -1.9373;
+rom.init.power = -1.6511;
+rom.init.T3 = -1.8071;
+rom.init.p2 = -1.8320;
+
 

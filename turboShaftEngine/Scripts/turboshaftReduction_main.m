@@ -25,7 +25,7 @@ train = true; % enable or disable network trainning
 
 
 %% Generate Simulation Scenarios
-initialScenarioVector = [2e3:0.5e3:5e3];
+initialScenarioVector = [[2e3:1e3:5e3] [5e3:-1e3:2.5e3]];
 referenceHeatStates = {{initialScenarioVector,simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+150],simStopTime},                       
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+300],simStopTime},
@@ -64,7 +64,7 @@ end
 simOut = parsim(simIn);
 
 %% Resample results
-sampleTime = 1; % s
+sampleTime = 0.1; % s
 commandSignals = [{'Altitude', 'Qin'}];
 [resampledData, sigNames] = resampleSimulationData(simOut,sampleTime,commandSignals);
 
@@ -101,7 +101,7 @@ layers = [
     lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
-    % reluLayer("Name","relu")
+    tanhLayer("Name","tanh")
     fullyConnectedLayer(numResponses,"Name","fc_2")
     regressionLayer("Name","regressionoutput")
     ];
@@ -124,7 +124,7 @@ end
 
 
 %% Compare reduced/original model
-mode = 'Ramp';
+mode = 'Custom';
 
 referenceModel = 'simpleHelicopter_reference';
 open_system(referenceModel)
@@ -153,7 +153,7 @@ relTol = 1e-1;
 for ix=1:length(sigNames)
     basselineSig = refSim.logsout.getElement(sigNames{ix});
     romSig = romSim.logsout.getElement(sigNames{ix});
-    testCase.verifyThat(romSig,MatchesSignal({basselineSig},'RelTol',relTol))
+    testCase.verifyThat(romSig,MatchesSignal(basselineSig,'RelTol',relTol))
 end
 
 
@@ -171,13 +171,13 @@ end
 % Simulink.sdi.view
 % 
 % end
-Simulink.sdi.compareRuns(refRunID.id,romRunID.id)
+Simulink.sdi.compareRuns(refRunID.id,romRunID.id,'RelTol',relTol)
 Simulink.sdi.view
 %% Performance comparison
 compareSimulationPerformance(refSim, romSim)
 
 %% 
-idx = 1;
+idx = 7;
 X = XTrainSep{idx};
 TY = TTrainSep{idx};
 
@@ -198,12 +198,15 @@ end
 
 for inspSig=1:numResponses
 figure
-plot(Y(inspSig,:)'*stdTrain(inspSig)+meanTrain(inspSig))
+plot(Y(inspSig,:)') %...
+    % *stdTrain(inspSig)+meanTrain(inspSig))
 hold on
-plot(TY(inspSig,:)'*stdTrain(inspSig)+meanTrain(inspSig))
+plot(TY(inspSig,:)') ...
+    % *stdTrain(inspSig)+meanTrain(inspSig))
+ylabel(sigNames{ix})
 hold off
 end
 
 %% save net
 net = resetState(net);
-save("turboshaftEngine_ROM\turboshaft_ROM_v2.mat","net")
+save("turboshaftEngine\Models\Components\turboShaftEngineLSTM_ROM\turboshaft_ROM_v3.mat","net")
