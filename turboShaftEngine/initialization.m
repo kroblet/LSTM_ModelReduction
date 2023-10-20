@@ -161,5 +161,5 @@ rom.init.ggtRPM = -1.7263;
 rom.init.power = -1.4515;
 rom.init.T3 = -1.5059;
 rom.init.p2 = -2.0145;
-rom.init.timeCutOff = 10;
+rom.init.timeColdStart = 10;
 

@@ -202,4 +202,4 @@ end
 
 %% save net
 net = resetState(net);
-save("turboshaftEngine_ROM\turboshaft_ROM_short.mat","net")
+save("turboshaftEngine_ROM\turboshaft_ROM_v2.mat","net")
