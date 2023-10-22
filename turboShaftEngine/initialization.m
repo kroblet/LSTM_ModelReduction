@@ -1,5 +1,4 @@
 % initial conditions
-% height = 465;
 fixedStepSize = 0.1;
 sampleTime = 0.1;
 Qin = [2000 2000 3100 3100 3600 3600 4100 4100 4600 4600 5100 5100 5100 5100];
@@ -163,13 +162,13 @@ rom.std.p2 = stdTrain(8);
 % rom.init.p2 = -2.0145;
 rom.init.timeColdStart = 20;
 
-rom.init.h = -0.8835;
-rom.init.Qin = -1.7563;
-rom.init.AirMassFlow = -1.8228;
-rom.init.fptRPM = -1.8896;
-rom.init.ggtRPM = -1.9373;
-rom.init.power = -1.6511;
-rom.init.T3 = -1.8071;
-rom.init.p2 = -1.8320;
+rom.init.h = -0.883502305729634;
+rom.init.Qin = -1.756277954474450;
+rom.init.AirMassFlow = -1.822791999032473;
+rom.init.fptRPM = -1.889570395699298;
+rom.init.ggtRPM = -1.937268901463669;
+rom.init.power = -1.651109114035745;
+rom.init.T3 = -1.807116699384182;
+rom.init.p2 = -1.831956246134835;
 
 

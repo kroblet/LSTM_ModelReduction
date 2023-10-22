@@ -7,23 +7,6 @@ simStopTime = 300; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
 
-%% Wavelet analysis
-% load_system(modelName)
-% Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
-% Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
-% outSim = sim(modelName);
-% sampleTime = 1; % s
-% [resampledDataCell, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
-% 
-% 
-% for iy =1:length(sigNamesCell)
-%     figure()
-%     cwt(resampledDataCell{1}(iy,:),1/sampleTime)
-%     title(sigNames{1}{iy})
-% end
-
-
-
 %% Generate Simulation Scenarios
 initialScenarioVector = [[2e3:1e3:5e3] [5e3:-1e3:2.5e3]];
 referenceHeatStates = {{initialScenarioVector,simStopTime},
@@ -80,7 +63,7 @@ trainPercentage = 1; % the percentage of the data that they will be used for tra
 
 %% Normalize
 normalize = @(x,mu,sigma) (x - mu) ./ sigma;
-dataTrainNorm = normalizeData(normalize, dataTrain, meanTrain, stdTrain);
+dataTrainNorm = normalizeDataMinMax(normalize, dataTrain, meanTrain, stdTrain);
 %% Inspect Normalized Train Data
 visualizeTrainData(dataTrainNorm(:),sigNames, 'Train Data')
 
@@ -101,7 +84,7 @@ layers = [
     lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
-    tanhLayer("Name","tanh")
+    % reluLayer("Name","reLu")
     fullyConnectedLayer(numResponses,"Name","fc_2")
     regressionLayer("Name","regressionoutput")
     ];
@@ -109,7 +92,7 @@ layers = [
 opts = trainingOptions("adam",...
     "ExecutionEnvironment","auto",...
     "InitialLearnRate",initLearnRate,...
-    "MaxEpochs",1000,...
+    "MaxEpochs",500,...
     "Shuffle","every-epoch",... 
     "LearnRateSchedule","piecewise",...
     "LearnRateDropPeriod",learnDropPeriod,...
@@ -124,7 +107,7 @@ end
 
 
 %% Compare reduced/original model
-mode = 'Custom';
+mode = 'Ramp';
 
 referenceModel = 'simpleHelicopter_reference';
 open_system(referenceModel)
@@ -177,7 +160,7 @@ Simulink.sdi.view
 compareSimulationPerformance(refSim, romSim)
 
 %% 
-idx = 7;
+idx = 8;
 X = XTrainSep{idx};
 TY = TTrainSep{idx};
 
@@ -196,6 +179,7 @@ for t = 2:numPredictionTimeSteps
    cellState(t,:) = net.Layers(2,1).CellState;
 end
 
+
 for inspSig=1:numResponses
 figure
 plot(Y(inspSig,:)') %...
@@ -210,3 +194,21 @@ end
 %% save net
 net = resetState(net);
 save("turboshaftEngine\Models\Components\turboShaftEngineLSTM_ROM\turboshaft_ROM_v3.mat","net")
+
+
+%% Draft
+%% Wavelet analysis
+% load_system(modelName)
+% Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
+% Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
+% outSim = sim(modelName);
+% sampleTime = 1; % s
+% [resampledDataCell, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
+% 
+% 
+% for iy =1:length(sigNamesCell)
+%     figure()
+%     cwt(resampledDataCell{1}(iy,:),1/sampleTime)
+%     title(sigNames{1}{iy})
+% end
+
