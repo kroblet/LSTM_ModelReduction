@@ -16,13 +16,13 @@ rom.total = romOut.SimulationMetadata.TimingInfo.TotalElapsedWallTime;
 reduced = [rom.init rom.execution rom.total];
 
 categories = categorical({'Initialization','Execution','Total'});
-barh(ax1, categories, [baseline;reduced])
+bar(ax1, categories, [baseline;reduced])
 xlabel(ax1,'Time (s)')
 legend(ax1, {'Simscape model', 'LSTM ROM'})
 grid(ax1,'on')
 
 timereduction = (baseline-reduced)./baseline.*100;
-barh(ax2, categories, timereduction, 0.3)
+bar(ax2, categories, timereduction, 0.3)
 xlabel(ax2,'Time reduction (%)')
 grid(ax2,'on')
 
