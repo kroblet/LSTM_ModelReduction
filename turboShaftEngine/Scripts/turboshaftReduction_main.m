@@ -3,29 +3,12 @@ proj = matlab.project.rootProject; % project root
 scenarioDir = fullfile(proj.RootFolder, 'turboshaftEngine', 'SimulationInput');
 simOutDir = fullfile(proj.RootFolder, 'turboshaftEngine', 'SimulationOutput');
 modelName = 'simpleHelicopter_toReduce';
-simStopTime = 500; % Simulation stop time in s
+simStopTime = 300; % Simulation stop time in s
 
 train = true; % enable or disable network trainning
 
-%% Wavelet analysis
-% load_system(modelName)
-% Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
-% Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
-% outSim = sim(modelName);
-% sampleTime = 1; % s
-% [resampledDataCell, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
-% 
-% 
-% for iy =1:length(sigNamesCell)
-%     figure()
-%     cwt(resampledDataCell{1}(iy,:),1/sampleTime)
-%     title(sigNames{1}{iy})
-% end
-
-
-
 %% Generate Simulation Scenarios
-initialScenarioVector = [2e3:0.5e3:5e3];
+initialScenarioVector = [[2e3:1e3:5e3] [5e3:-1e3:2.5e3]];
 referenceHeatStates = {{initialScenarioVector,simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+150],simStopTime},                       
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+300],simStopTime},
@@ -64,7 +47,7 @@ end
 simOut = parsim(simIn);
 
 %% Resample results
-sampleTime = 1; % s
+sampleTime = 0.1; % s
 commandSignals = [{'Altitude', 'Qin'}];
 [resampledData, sigNames] = resampleSimulationData(simOut,sampleTime,commandSignals);
 
@@ -80,7 +63,7 @@ trainPercentage = 1; % the percentage of the data that they will be used for tra
 
 %% Normalize
 normalize = @(x,mu,sigma) (x - mu) ./ sigma;
-dataTrainNorm = normalizeData(normalize, dataTrain, meanTrain, stdTrain);
+dataTrainNorm = normalizeDataMinMax(normalize, dataTrain, meanTrain, stdTrain);
 %% Inspect Normalized Train Data
 visualizeTrainData(dataTrainNorm(:),sigNames, 'Train Data')
 
@@ -101,7 +84,7 @@ layers = [
     lstmLayer(numHiddenUnits,"Name","lstm","OutputMode","sequence")
     dropoutLayer(dropoutProbability,"Name","drop")
     fullyConnectedLayer(numHiddenUnits,"Name","fc_1")
-    % reluLayer("Name","relu")
+    % reluLayer("Name","reLu")
     fullyConnectedLayer(numResponses,"Name","fc_2")
     regressionLayer("Name","regressionoutput")
     ];
@@ -109,7 +92,7 @@ layers = [
 opts = trainingOptions("adam",...
     "ExecutionEnvironment","auto",...
     "InitialLearnRate",initLearnRate,...
-    "MaxEpochs",1000,...
+    "MaxEpochs",500,...
     "Shuffle","every-epoch",... 
     "LearnRateSchedule","piecewise",...
     "LearnRateDropPeriod",learnDropPeriod,...
@@ -124,13 +107,17 @@ end
 
 
 %% Compare reduced/original model
+mode = 'Ramp';
+
 referenceModel = 'simpleHelicopter_reference';
 open_system(referenceModel)
+set_param([referenceModel,'/HeatIn'],'LabelModeActivechoice', mode)
 refSim = sim(referenceModel);
 refRunID = Simulink.sdi.Run.getLatest;
 
 reducedModel = 'simpleHelicopter_ROM';
 open_system(reducedModel)
+set_param([reducedModel,'/HeatIn'],'LabelModeActivechoice', mode)
 romSim = sim(reducedModel);
 romRunID = Simulink.sdi.Run.getLatest;
 
@@ -149,31 +136,31 @@ relTol = 1e-1;
 for ix=1:length(sigNames)
     basselineSig = refSim.logsout.getElement(sigNames{ix});
     romSig = romSim.logsout.getElement(sigNames{ix});
-    testCase.verifyThat(romSig,MatchesSignal({basselineSig},'RelTol',relTol))
+    testCase.verifyThat(romSig,MatchesSignal(basselineSig,'RelTol',relTol))
 end
 
 
 %% Visualize
 
-for ix=1:length(sigNames)
-% basselineSig = refSim.logsout.getElement(sigNames{ix});
-% romSig = romSim.logsout.getElement(sigNames{ix});
-
-refSigID = getSignalIDsByName(refRunID,sigNames{ix});
-romSigID = getSignalIDsByName(romRunID,sigNames{ix});
-sigNames{ix}
-diffResult = Simulink.sdi.compareSignals(refSigID,romSigID);
-
+% for ix=1:length(sigNames)
+% % basselineSig = refSim.logsout.getElement(sigNames{ix});
+% % romSig = romSim.logsout.getElement(sigNames{ix});
+% 
+% refSigID = getSignalIDsByName(refRunID,sigNames{ix});
+% romSigID = getSignalIDsByName(romRunID,sigNames{ix});
+% sigNames{ix}
+% diffResult = Simulink.sdi.compareSignals(refSigID,romSigID);
+% 
+% Simulink.sdi.view
+% 
+% end
+Simulink.sdi.compareRuns(refRunID.id,romRunID.id,'RelTol',relTol)
 Simulink.sdi.view
-
-end
-
-
 %% Performance comparison
 compareSimulationPerformance(refSim, romSim)
 
 %% 
-idx = 1;
+idx = 8;
 X = XTrainSep{idx};
 TY = TTrainSep{idx};
 
@@ -192,14 +179,36 @@ for t = 2:numPredictionTimeSteps
    cellState(t,:) = net.Layers(2,1).CellState;
 end
 
+
 for inspSig=1:numResponses
 figure
-plot(Y(inspSig,:)'*stdTrain(inspSig)+meanTrain(inspSig))
+plot(Y(inspSig,:)') %...
+    % *stdTrain(inspSig)+meanTrain(inspSig))
 hold on
-plot(TY(inspSig,:)'*stdTrain(inspSig)+meanTrain(inspSig))
+plot(TY(inspSig,:)') ...
+    % *stdTrain(inspSig)+meanTrain(inspSig))
+ylabel(sigNames{ix})
 hold off
 end
 
 %% save net
 net = resetState(net);
-save("turboshaftEngine_ROM\turboshaft_ROM_short.mat","net")
+save("turboshaftEngine\Models\Components\turboShaftEngineLSTM_ROM\turboshaft_ROM_v3.mat","net")
+
+
+%% Draft
+%% Wavelet analysis
+% load_system(modelName)
+% Qin = scenario{1}.shaftSpeedRef{1}.Values.Data;
+% Qin_time = scenario{1}.shaftSpeedRef{1}.Values.Time;
+% outSim = sim(modelName);
+% sampleTime = 1; % s
+% [resampledDataCell, sigNamesCell] = resampleSimulationData(outSim,sampleTime);
+% 
+% 
+% for iy =1:length(sigNamesCell)
+%     figure()
+%     cwt(resampledDataCell{1}(iy,:),1/sampleTime)
+%     title(sigNames{1}{iy})
+% end
+
