@@ -8,7 +8,9 @@ simStopTime = 300; % Simulation stop time in s
 train = true; % enable or disable network trainning
 
 %% Generate Simulation Scenarios
-initialScenarioVector = [[2e3:1e3:5e3] [5e3:-1e3:2.5e3]];
+% initialScenarioVector = [[2e3:1e3:5e3] [5e3:-1e3:2.5e3]];
+initialScenarioVector = [2e3:0.5e3:5e3];
+
 referenceHeatStates = {{initialScenarioVector,simStopTime},
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+150],simStopTime},                       
                     {[initialScenarioVector(1), initialScenarioVector(2:end)+300],simStopTime},
