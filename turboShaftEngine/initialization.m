@@ -119,23 +119,23 @@ chassis.mass = 6000; % kg
 % LSTM rom
 load meanTrain.mat
 load stdTrain.mat
-rom.mean.h = meanTrain.Altitude;
-rom.mean.Qin = meanTrain.Qin;
-rom.mean.AirMassFlow = meanTrain.AirMassFlow;
-rom.mean.fptRPM = meanTrain.("FTP RPM");
-rom.mean.ggtRPM = meanTrain.("GGT RPM");
-rom.mean.power =  meanTrain.Power;
-rom.mean.T3 = meanTrain.T3;
-rom.mean.p2 = meanTrain.P2;
+rom.mean.h = meanTrain.('Altitude (m)');
+rom.mean.Qin = meanTrain.('Qin (kW)');
+rom.mean.AirMassFlow = meanTrain.('AirMassFlow (kg/s)');
+rom.mean.fptRPM = meanTrain.('FPT (rpm)');
+rom.mean.ggtRPM = meanTrain.('GGT (rpm)');
+rom.mean.power =  meanTrain.('Power (kW)');
+rom.mean.T3 = meanTrain.('T3 (K)');
+rom.mean.p2 = meanTrain.("P2 (Pa)");
 
-rom.std.h = stdTrain.Altitude;
-rom.std.Qin = stdTrain.Qin;
-rom.std.AirMassFlow = stdTrain.AirMassFlow;
-rom.std.fptRPM = stdTrain.("FTP RPM");
-rom.std.ggtRPM = stdTrain.("GGT RPM");
-rom.std.power = stdTrain.Power;
-rom.std.T3 = stdTrain.T3;
-rom.std.p2 = stdTrain.P2;
+rom.std.h = stdTrain.("Altitude (m)");
+rom.std.Qin = stdTrain.("Qin (kW)");
+rom.std.AirMassFlow = stdTrain.("AirMassFlow (kg/s)");
+rom.std.fptRPM = stdTrain.("FPT (rpm)");
+rom.std.ggtRPM = stdTrain.("GGT (rpm)");
+rom.std.power = stdTrain.("Power (kW)");
+rom.std.T3 = stdTrain.("T3 (K)");
+rom.std.p2 = stdTrain.("P2 (Pa)");
 
 rom.init.timeColdStart = 20;
 rom.init.h = -0.883502305729634;
