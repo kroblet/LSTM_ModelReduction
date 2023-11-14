@@ -1,0 +1,26 @@
+<?xml-stylesheet href="defaultstyles.css" type="text/css"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:d="http://www.mathworks.com/blockgraphics" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="svg_108" width="10824" height="5424" viewBox="-12 -12 10824 5424" d:options="Foreground:PortStyled;StrokeScaling:PortStyled;StrokeScalingOnResize:NonScaling;LineExtension:On;Rotate:On;Resize:FitToBlock;Frame:Off;Clipping:None;PreAdjustSize:CropToContent;PreAdjustStrokeWidth:Normalized;Geometric:Off;Port:Auto Majority">
+	<g id="layer_107" title="layer_0">
+		<g id="group_118" fill="none">
+			<rect id="rect_109" stroke="#ffffff" stroke-width="8px" x="0" y="0" width="10800" height="5400" rx="0" ry="0"/>
+			<path id="path_110" stroke="#000000" stroke-width="8px" d=" M 0,4050 L 4500,4050"/>
+			<path id="path_111" stroke="#000000" stroke-width="8px" d=" M 7875,1125 L 7875,225 L 2925,225 L 2925,1125"/>
+			<path id="path_112" stroke="#000000" stroke-width="8px" d=" M 2925,4275 L 2925,5175 L 7875,5175 L 7875,4275"/>
+			<path id="path_113" stroke="#000000" stroke-width="8px" d=" M 7875,1575 L 7875,3825"/>
+			<path id="path_114" stroke="#000000" stroke-width="8px" d=" M 10800,1350 L 6300,1350"/>
+			<path id="path_115" stroke="#000000" stroke-width="8px" d=" M 10800,4050 L 6300,4050"/>
+			<path id="path_116" stroke="#000000" stroke-width="8px" d=" M 2925,1575 L 2925,3825"/>
+			<path id="path_117" stroke="#000000" stroke-width="8px" d=" M 0,1350 L 1935,1350 L 1935,900 L 2700,1350 L 1935,1800 L 1935,900 L 2700,1350 L 4500,1350"/>
+		</g>
+		<g id="group_97">
+			<path id="path_72" class="path" d=" M 634.5271428571428,5317.857142857143 Q 1073.607142857143,3278.8371428571427 1512.6971428571428,3278.3371428571427 Q 1952.777142857143,3278.8371428571427 2392.8571428571427,5317.857142857143"/>
+			<line id="line_89" class="line" x1="2392.8571428571427" y1="5317.857142857143" x2="2184.5271428571427" y2="5109.527142857143"/>
+			<line id="line_96" class="line" x1="2392.8571428571427" y1="5317.857142857143" x2="2534.5271428571427" y2="5109.527142857143"/>
+		</g>
+		<g id="group_101">
+			<path id="path_98" class="path" d=" M 8451.197142857143,5317.857142857143 Q 8890.277142857143,3278.8371428571427 9329.367142857143,3278.3371428571427 Q 9769.447142857143,3278.8371428571427 10209.527142857143,5317.857142857143"/>
+			<line id="line_99" class="line" x1="10209.527142857143" y1="5317.857142857143" x2="10001.197142857143" y2="5109.527142857143"/>
+			<line id="line_100" class="line" x1="10209.527142857143" y1="5317.857142857143" x2="10351.197142857143" y2="5109.527142857143"/>
+		</g>
+	</g>
+</svg>
