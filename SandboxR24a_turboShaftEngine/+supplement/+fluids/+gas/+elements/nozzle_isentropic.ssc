@@ -1,0 +1,149 @@
+component nozzle_isentropic
+% Supersonic Isentropic Nozzle : 1.5
+% This block represents a simple supersonic isentropic flow model through a convergent-divergent nozzle.
+% It consists of steady-state perfect gas isentropic flow equations.
+% The flow fully expands to a supersonic outlet, so inlet state is not affected by outlet state.
+% Flow speed at inlet is assumed to be negligable.
+
+% Copyright 2019 The MathWorks, Inc. 
+
+nodes
+    A = foundation.gas.gas; % A:left
+    %B = foundation.gas.gas; % B:right
+    
+    R = foundation.mechanical.translational.translational; % R:right
+    C = foundation.mechanical.translational.translational; % C:right
+end
+
+parameters
+   %A_vec = {[1, 0.9, 0.7, 0.5, 0.7, 0.8, 0.9, 1.0, 1.1], 'm^2'}; % Area of each cross-section (vector) 
+   %x_vec = {[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], 'm'}; % Position of each cross-section (vector)
+   area_A = {0.05, 'm^2'}; % Inlet cross-section area
+   area_throat = {0.01, 'm^2'}; % Throat cross-section area
+   area_out = {0.1, 'm^2'}; % Outlet cross-section area
+   g0 = {9.81, 'm/s^2'}; % Gravity acceleration (for specific impulse calculation)
+   p_ext = {1, 'bar'}; % External pressure (for thrust calculation)
+end
+
+%Fluid variables
+variables (Access = protected, ExternalAccess = observe)
+    mdot_A = {0, 'kg/s'}; % Mass flow rate into port A
+    p_A = {1, 'MPa'}; % Pressure at port A
+    T_A = {300, 'K'}; % Temperature at port A
+    T_out = {300, 'K'}; % Temperature at outlet
+    p_out = {1, 'MPa'}; % Pressure at outlet
+    v_out = {1, 'm/s'}; % Outlet flow speed
+    c_out = {1, 'm/s'}; % Outlet sound speed
+    Ma_out = {value={2, '1'}, imin=1}; % Outlet mach number
+    Isp = {1, 's'}; % Nozzle specific impulse
+end
+
+variables(Access = protected, ExternalAccess = none)
+    Phi_A  = {0, 'kW'  }; % Energy flow rate into port A   
+end
+
+%Mechanical variables
+variables (Access = protected)
+    thrust = {0, 'kN'}; % Thrust force
+end
+
+% Through variables
+branches
+    mdot_A : A.mdot -> *;
+    Phi_A  : A.Phi  -> *;
+    thrust : C.f -> R.f;
+end
+
+parameters(Access = private) 
+    gas_spec     = A.gas_spec;
+    Rgas         = A.R;
+    Z            = A.Z;
+    T_ref        = A.T_ref;
+    h_ref        = A.h_ref;
+    cp_ref       = A.cp_ref;
+    cv_ref       = A.cv_ref;
+    T_TLU1       = A.T_TLU1;
+    h_TLU1       = A.h_TLU1;
+    a_TLU1       = A.a_TLU1;
+    T_TLU2       = A.T_TLU2;
+    p_TLU2       = A.p_TLU2;
+    log_T_TLU2   = A.log_T_TLU2;
+    log_p_TLU2   = A.log_p_TLU2;
+    log_rho_TLU2 = A.log_rho_TLU2;
+    h_TLU2       = A.h_TLU2;
+    a_TLU2       = A.a_TLU2;
+    T_min        = A.T_min;
+    Mach_rev     = A.Mach_rev
+    T_unit       = A.T_unit;
+    p_unit       = A.p_unit;
+    rho_unit     = A.rho_unit;
+    log_ZR       = A.log_ZR;    
+end
+
+parameters(Access = private) 
+    gamma = cp_ref/cv_ref; % Reference heat capacity ratio
+end
+
+% Fluid equations
+equations 
+    %Across variables definition
+    A.T == T_A;
+    A.p == p_A;
+    
+    % Steady-state perfect gas isentropic flow constitutive equation for mass flow 
+    mdot_A == p_A*area_throat*sqrt(gamma/(Rgas*T_A))*(1 + (gamma-1)/2)^((gamma+1)/(2-2*gamma));
+end
+
+% Internal component that calculates energy convection at port E
+components (ExternalAccess = none)
+    convection_A = foundation.gas.port_convection(flow_area = area_A);
+end
+connections
+    connect(A, convection_A.port)
+end
+
+% Equate variables for internal component that calculates energy convection at port A
+intermediates(Access = private, ExternalAccess = none)
+    h_A = ...
+        if gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+            h_ref + cp_ref*(T_A - T_ref) ...
+        elseif gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+            tablelookup(T_TLU1, h_TLU1, T_A, interpolation = linear, extrapolation = linear) ...
+        else ... % gas_spec == foundation.enum.gas_spec.real_gas
+            tablelookup(T_TLU2, p_TLU2, h_TLU2, T_A, p_A, interpolation = linear, extrapolation = linear) ...
+        end;
+end
+
+equations
+    convection_A.mdot == mdot_A;
+    convection_A.Phi  == Phi_A;
+    convection_A.ht_I == h_A;
+end
+
+%Mechanical equations
+intermediates(Access = private, ExternalAccess = none)
+    thrust_theoretical = mdot_A*v_out + area_out*(p_out - p_ext);
+end
+
+equations    
+    % sound speed definition
+    c_out == sqrt(gamma*Rgas*T_out);
+    
+    % Mach number definition
+    Ma_out == v_out/c_out;
+    
+    % obtain outlet temperature and pressure
+    T_A/T_out == (1 + (gamma-1)/2*Ma_out^2);
+    p_A/p_out == (1 + (gamma-1)/2*Ma_out^2)^(gamma/(gamma-1));
+    
+    % obtain Ma_out
+    area_out/area_throat == 1/Ma_out*((2 + (gamma-1)*Ma_out^2)/(gamma+1))^((gamma+1)/(2*(gamma-1)));
+    
+    % thrust equation
+    thrust == simscape.function.limit(thrust_theoretical, {0, 'N'}, {inf, 'N'}, false); % Thrust is always positive, limit value to zero when negative
+    
+    % specific impulse definition
+    Isp == thrust/(mdot_A*g0);
+end
+
+end
