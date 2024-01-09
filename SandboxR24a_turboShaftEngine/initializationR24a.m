@@ -139,7 +139,6 @@ rom.std.power = stdTrain.("Power (kW)");
 rom.std.T3 = stdTrain.("T3 (K)");
 rom.std.p2 = stdTrain.("P2 (Pa)");
 
-rom.init.timeColdStart = 20;
 rom.init.h = initValues.("Altitude (m)");
 rom.init.Qin = initValues.("Qin (kW)");
 rom.init.AirMassFlow = initValues.("AirMassFlow (kg/s)");
@@ -148,5 +147,5 @@ rom.init.ggtRPM = initValues.("GGT (rpm)");
 rom.init.power = initValues.("Power (kW)");
 rom.init.T3 = initValues.("T3 (K)");
 rom.init.p2 = initValues.("P2 (Pa)");
-
+rom.init.timeColdStart = 20;
 
