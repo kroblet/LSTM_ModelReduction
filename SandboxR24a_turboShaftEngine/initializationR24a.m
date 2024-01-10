@@ -121,31 +121,12 @@ load meanTrain.mat
 load stdTrain.mat
 load initValues.mat
 
-rom.mean.h = meanTrain.('Altitude (m)');
-rom.mean.Qin = meanTrain.('Qin (kW)');
-rom.mean.AirMassFlow = meanTrain.('AirMassFlow (kg/s)');
-rom.mean.fptRPM = meanTrain.('FPT (rpm)');
-rom.mean.ggtRPM = meanTrain.('GGT (rpm)');
-rom.mean.power =  meanTrain.('Power (kW)');
-rom.mean.T3 = meanTrain.('T3 (K)');
-rom.mean.p2 = meanTrain.("P2 (Pa)");
+measSigNames = initValues.Properties.VariableNames;
 
-rom.std.h = stdTrain.("Altitude (m)");
-rom.std.Qin = stdTrain.("Qin (kW)");
-rom.std.AirMassFlow = stdTrain.("AirMassFlow (kg/s)");
-rom.std.fptRPM = stdTrain.("FPT (rpm)");
-rom.std.ggtRPM = stdTrain.("GGT (rpm)");
-rom.std.power = stdTrain.("Power (kW)");
-rom.std.T3 = stdTrain.("T3 (K)");
-rom.std.p2 = stdTrain.("P2 (Pa)");
-
-rom.init.h = initValues.("Altitude (m)");
-rom.init.Qin = initValues.("Qin (kW)");
-rom.init.AirMassFlow = initValues.("AirMassFlow (kg/s)");
-rom.init.fptRPM = initValues.("FPT (rpm)");
-rom.init.ggtRPM = initValues.("GGT (rpm)");
-rom.init.power = initValues.("Power (kW)");
-rom.init.T3 = initValues.("T3 (K)");
-rom.init.p2 = initValues.("P2 (Pa)");
-rom.init.timeColdStart = 20;
+for ix=1:length(measSigNames)
+    rom.mean(ix) = meanTrain.(measSigNames{ix});
+    rom.std(ix) = stdTrain.(measSigNames{ix});
+    rom.init(ix) = initValues.(measSigNames{ix});
+end
+rom.timeColdStart = 20;
 
