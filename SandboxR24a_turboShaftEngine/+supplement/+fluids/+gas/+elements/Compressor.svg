@@ -1,0 +1,41 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5e -->
+<!-- CreationDate: Mon Sep 26 14:56:17 2016 -->
+<!-- Magnification: 1.050 -->
+<svg width="8529" height="5694.000000000001" xmlns="http://www.w3.org/2000/svg" xmlns:d="http://www.mathworks.com/blockgraphics">
+ <g>
+  <title>Layer 1</title>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:R1" id="svg_2" stroke="#000000" stroke-width="8" points="8503,2834 6614,2834 "/>
+  <!-- Line: box -->
+  <rect fill-opacity="0" fill="#000000" id="svg_3" stroke="#ffffff" stroke-width="8" height="5669" width="8503" y="0" x="0"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:R0" id="svg_4" stroke="#000000" stroke-width="8" points="8503,944 7559,944 6614,1889 5433,1889 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L1" id="svg_5" stroke="#000000" stroke-width="8" points="0,4251 472,4251 1417,5196 1889,5196 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" id="svg_6" stroke="#000000" stroke-width="8" points="0,1417 944,1417 1417,1889 2125,1889 "/>
+  <!-- Line -->
+  <polyline d:options="Port:L1" id="svg_7" stroke="#000000" stroke-width="8" fill="#000000" points="1889,5433 6141,4488 6141,4251 1889,5196 1889,5433 "/>
+  <!-- Line -->
+  <polyline d:options="Port:R1" id="svg_8" stroke="#000000" stroke-width="8" fill="#000000" points="2598,2598 2598,1086 2834,1133 2834,2598 2598,2598 "/>
+  <!-- Line -->
+  <polyline d:options="Port:R1" id="svg_9" stroke="#000000" stroke-width="8" fill="#000000" points="2598,3070 2598,4582 2834,4535 2834,3070 2598,3070 "/>
+  <!-- Line -->
+  <polyline d:options="Port:L1" id="svg_10" stroke="#000000" stroke-width="8" fill="#000000" points="3307,708 3307,2125 3543,2125 3543,708 3307,708 "/>
+  <!-- Line -->
+  <polyline d:options="Port:L1" id="svg_11" stroke="#000000" stroke-width="8" fill="#000000" points="3307,4960 3307,3543 3543,3543 3543,4960 3307,4960 "/>
+  <!-- Line -->
+  <polyline d:options="Port:R1" id="svg_12" stroke="#000000" stroke-width="8" fill="#000000" points="4015,2598 4015,1417 4251,1464 4251,2598 4015,2598 "/>
+  <!-- Line -->
+  <polyline d:options="Port:L1" id="svg_13" stroke="#000000" stroke-width="8" fill="#000000" points="1889,236 1889,472 6141,1417 6141,1181 1889,236 "/>
+  <!-- Line -->
+  <polyline d:options="Port:L1" id="svg_14" stroke="#000000" stroke-width="8" fill="#000000" points="4724,1039 4724,2125 4960,2125 4960,1039 4724,1039 "/>
+  <!-- Line -->
+  <polyline d:options="Port:R1" id="svg_15" stroke="#000000" stroke-width="8" fill="#000000" points="4015,3070 4015,4251 4251,4204 4251,3070 4015,3070 "/>
+  <!-- Line -->
+  <polyline d:options="Port:L1" id="svg_16" stroke="#000000" stroke-width="8" fill="#000000" points="4724,4629 4724,3543 4960,3543 4960,4629 4724,4629 "/>
+  <!-- Line: box -->
+  <rect d:options="Port:R1" id="svg_17" stroke="#000000" stroke-width="8" fill="#000000" height="472" width="5669" y="2598" x="944"/>
+ </g>
+</svg>
