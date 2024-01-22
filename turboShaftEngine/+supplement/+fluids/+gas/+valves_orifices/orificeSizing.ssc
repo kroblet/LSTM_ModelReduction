@@ -1,0 +1,326 @@
+component orificeSizing
+    % Orifice Sizing (G) : 1.5
+    % This block models the pressure loss due to a constant or variable orifice
+    % in a gas network. In the variable option, control member opening fraction
+    % is set by the physical signal input L. The orifice is closed when L = 0
+    % and fully open when L = 1. Choking occurs when the pressure ratio across
+    % the orifice reaches the critical pressure ratio. There is no heat
+    % exchange with the environment.
+
+    % Copyright 2017-2022 The MathWorks, Inc.
+    nodes
+        A = foundation.gas.gas; % A
+        B = foundation.gas.gas; % B
+    end
+
+    annotations
+        A : Side = left;
+        B : Side = right;
+    end
+
+    parameters (ExternalAccess = modify)
+        area  = {1,  'm^2'}; % Cross-sectional area at ports A and B
+        Cd           = {0.64,  '1'  }; % Discharge coefficient
+        B_lam        = {0.999, '1'  }; % Laminar flow pressure ratio
+        sizingComponent = false;   % Design mode
+    end
+
+    parameters (ExternalAccess = none)
+        mdot = {0, 'kg/s'}; % Mass flow rate
+        dp = {0,'MPa'}; % Pressure difference
+        orifice_area_fixed = {1e-3,'m^2'}; % Orifice area
+        sizingConstraint = true;   % Sizing constraint (true = mdot, false = dp)
+    end
+    outputs (ExternalAccess = none)
+        mdot_Restriction = {0,'kg/s'}; %:right
+        area_Restriction = {0,'m^2'}; %:right
+    end
+
+    variables (ExternalAccess = none)
+        orifice_area_variable = { value = area / 10, imin={0,'m^2'}, imax=area }; % Orifice area
+    end
+
+    if sizingComponent
+        annotations
+            sizingConstraint: ExternalAccess = modify;
+            area_Restriction: ExternalAccess = modify;
+        end
+        if sizingConstraint % Mass flow
+            annotations
+                Icon = 'orifice_mdot.svg';
+                mdot: ExternalAccess = modify;
+            end
+        else % Pressure
+            annotations
+                Icon = 'orifice_dp.svg';
+                dp: ExternalAccess = modify;
+            end
+        end
+    else
+        annotations
+            Icon = 'orifice.svg';
+            orifice_area_fixed: ExternalAccess = modify;
+            mdot_Restriction: ExternalAccess = modify;            
+        end
+    end
+
+    equations
+        assert(area > 0)
+    end
+
+    variables (ExternalAccess = observe)
+        mdot_A = {0, 'kg/s'}; % Mass flow rate
+        mdot_B  = {0, 'kg/s'}; % Mass flow rate
+        Phi_A  = {0, 'kW'  }; % Energy flow rate into port A
+        Phi_B  = {0, 'kW'  }; % Energy flow rate into port B
+    end
+
+    variables (ExternalAccess = none)
+        T_A = {300, 'K'}; % Temperature at port A
+        T_B = {300, 'K'}; % Temperature at port B
+    end
+
+    branches
+        mdot_A : A.mdot -> *;
+        mdot_B : B.mdot -> *;
+        Phi_A  : A.Phi  -> *;
+        Phi_B  : B.Phi  -> *;
+    end
+
+    intermediates( ExternalAccess = none )
+        % Port pressure
+        p_A = A.p;
+        p_B = B.p;
+    end
+
+    intermediates (Access = private, ExternalAccess = none)
+        % Log temperature
+        log_T_A = simscape.function.logProtected(T_A/A.T_unit, 1);
+        log_T_B = simscape.function.logProtected(T_B/A.T_unit, 1);
+
+        % Log pressure
+        log_p_A = simscape.function.logProtected(p_A/A.p_unit, 1);
+        log_p_B = simscape.function.logProtected(p_B/A.p_unit, 1);
+    end
+
+    intermediates( ExternalAccess = none )
+        % Thermal equation of state
+        % Use log-space to improve accuracy
+        [rho_A, rho_B] = ...
+            if A.gas_spec ~= foundation.enum.gas_spec.real_gas, ...
+                exp(log_p_A - A.log_ZR - log_T_A) * A.rho_unit; ...
+                exp(log_p_B - A.log_ZR - log_T_B) * A.rho_unit ...
+            else ...
+                exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_A, log_p_A, interpolation = linear, extrapolation = linear)) * A.rho_unit; ...
+                exp(tablelookup(A.log_T_TLU2, A.log_p_TLU2, A.log_rho_TLU2, log_T_B, log_p_B, interpolation = linear, extrapolation = linear)) * A.rho_unit ...
+            end;
+
+        % Caloric equation of state
+        [h_A, h_B] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.h_ref + A.cp_ref*(T_A - A.T_ref); ...
+                A.h_ref + A.cp_ref*(T_B - A.T_ref) ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.h_TLU1, T_A, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU1, A.h_TLU1, T_B, interpolation = linear, extrapolation = linear) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_A, p_A, interpolation = linear, extrapolation = linear); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.h_TLU2, T_B, p_B, interpolation = linear, extrapolation = linear) ...
+            end;
+
+        % Specific total enthalpy
+        ht_A = h_A + (mdot_A/rho_A/area)^2/2;
+        ht_B = h_B + (mdot_A/rho_B/area)^2/2;
+
+    end
+
+    intermediates( ExternalAccess = none )
+        % Specific heat
+        [cp_A, cp_B, cv_A, cv_B] = ...
+            if A.gas_spec == foundation.enum.gas_spec.perfect_gas, ...
+                A.cp_ref; ...
+                A.cp_ref; ...
+                A.cv_ref; ...
+                A.cv_ref ...
+            elseif A.gas_spec == foundation.enum.gas_spec.semiperfect_gas, ...
+                tablelookup(A.T_TLU1, A.cp_TLU1, T_A, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.cp_TLU1, T_B, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.cv_TLU1, T_A, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU1, A.cv_TLU1, T_B, interpolation = linear, extrapolation = nearest) ...
+            else ... % A.gas_spec == foundation.enum.gas_spec.real_gas
+                tablelookup(A.T_TLU2, A.p_TLU2, A.cp_TLU2, T_A, p_A, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.cp_TLU2, T_B, p_B, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.cv_TLU2, T_A, p_A, interpolation = linear, extrapolation = nearest); ...
+                tablelookup(A.T_TLU2, A.p_TLU2, A.cv_TLU2, T_B, p_B, interpolation = linear, extrapolation = nearest) ...
+            end;
+
+        % Average ratio of specific heat
+        gamma_A = cp_A / cv_A;
+        gamma_B = cp_B / cv_B;
+        gamma = (gamma_A + gamma_B)/2;
+    end
+
+    equations
+        % Specific total enthalpy at internal node
+        ht_A == convection_A.ht_I;
+        ht_B == convection_B.ht_I;
+
+        let
+            % Indicator variables for the valid region of the property tables
+            [indicator_pT_A, indicator_pT_B] = ...
+                if (A.gas_spec == foundation.enum.gas_spec.real_gas) && (A.pT_region_flag == foundation.enum.pT_region_G.validity_matrix), ...
+                    tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, A.T, A.p, interpolation = linear, extrapolation = linear); ...
+                    tablelookup(A.T_TLU2, A.p_TLU2, A.pT_validity_TLU2, B.T, B.p, interpolation = linear, extrapolation = linear) ...
+                else ...
+                    1; ...
+                    1 ...
+                end;
+        in
+            % Pressure and temperature must be within the valid region
+            assert(indicator_pT_A > 0, message('physmod:simscape:library:gas:PressureTemperaturePortValidRegion', 'A'))
+            assert(A.p >= A.p_min, message('physmod:simscape:library:gas:PressureMinValid', 'A'))
+            assert(A.p <= A.p_max, message('physmod:simscape:library:gas:PressureMaxValid', 'A'))
+            assert(A.T >= A.T_min, message('physmod:simscape:library:gas:TemperatureMinValid', 'A'))
+            assert(A.T <= A.T_max, message('physmod:simscape:library:gas:TemperatureMaxValid', 'A'))
+            assert(indicator_pT_B > 0, message('physmod:simscape:library:gas:PressureTemperaturePortValidRegion', 'B'))
+            assert(B.p >= A.p_min, message('physmod:simscape:library:gas:PressureMinValid', 'B'))
+            assert(B.p <= A.p_max, message('physmod:simscape:library:gas:PressureMaxValid', 'B'))
+            assert(B.T >= A.T_min, message('physmod:simscape:library:gas:TemperatureMinValid', 'B'))
+            assert(B.T <= A.T_max, message('physmod:simscape:library:gas:TemperatureMaxValid', 'B'))
+        end
+    end
+
+    % Internal components that calculate energy convection at ports A and B
+    components (ExternalAccess = none)
+        convection_A = foundation.gas.port_convection(flow_area = area);
+        convection_B = foundation.gas.port_convection(flow_area = area);
+    end
+    connections
+        connect(A, convection_A.port)
+        connect(B, convection_B.port)
+    end
+
+    % Equate variables for internal components that calculate energy convection at ports A and B
+    equations
+        convection_A.mdot == mdot_A;
+        convection_A.Phi  == Phi_A;
+        convection_B.mdot == mdot_B;
+        convection_B.Phi  == Phi_B;
+
+        convection_A.ht_I == convection_B.ht_I;
+    end
+
+    intermediates
+        orifice_area = ...
+            if sizingComponent, ...
+                orifice_area_variable ...
+            else ...
+                orifice_area_fixed ...
+            end;
+    end
+
+    % Parameter visibility and checks
+    equations
+        assert(Cd > 0)
+        assert(orifice_area > 0)
+        assert(orifice_area < area)
+        assert(B_lam > 0)
+        assert(B_lam < 1)
+    end
+
+    % Determine the sonic conductance and critical pressure ratio used in equation
+    parameters (Access = private)
+        p_unit = {1, 'bar'};
+    end
+
+    intermediates (Access = private, ExternalAccess = none)
+        % Average quantities
+        p_avg   = (p_A   + p_B  )/2;
+        T_avg   = (T_A   + T_B  )/2;
+        rho_avg = (rho_A + rho_B)/2;
+
+        % Inlet and outlet quantities
+        [p_in, p_out, T_in, rho_in, dir] = ...
+            if gt(p_A, p_B), ...
+                p_A; p_B; T_A; rho_A; 1 ...
+            elseif lt(p_A, p_B), ...
+                p_B; p_A; T_B; rho_B; -1 ...
+            else ...
+                p_avg; p_avg; T_avg; rho_avg; 0 ...
+            end;
+
+        % Exponents involving gamma in equations
+        gamma1 = (gamma - 1)/gamma;
+        gamma2 = 2/gamma;
+        gamma3 = 2*(gamma - 2)/gamma;
+
+        % Critical pressure ratio
+        B_crit = (2/(gamma + 1))^(1/gamma1);
+
+        % Orifice area ratio
+        area_ratio = orifice_area / area;
+
+        % Non-dimensionalize pressure to handle non-integer exponent gamma
+        p_A_unit   =       p_A  /p_unit;
+        p_B_unit   =       p_B  /p_unit;
+        p_avg_unit = neabs(p_avg/p_unit);
+        p_in_unit  = neabs(p_in /p_unit);
+        p_out_unit = neabs(p_out/p_unit);
+    end
+
+    
+    intermediates
+        % Mass flow rate from port A to port B assuming no choke
+        mdot_unchoked = Cd * orifice_area * sqrt(2*p_unit/gamma1) * (p_A_unit^gamma1 - p_B_unit^gamma1) ...
+            / ((p_in_unit/p_out_unit^2)^gamma2 / rho_in^2 * (1 - area_ratio^2 * (p_out_unit/p_in_unit)^gamma2)^2 * (p_A_unit^gamma1 - p_B_unit^gamma1)^2 ...
+            + p_avg_unit^gamma3 / rho_avg^2 * (1/B_lam^gamma2 - area_ratio^2)^2 * (1 - B_lam^gamma1)^2)^0.25;
+
+        % Choked mass flow rate (always positive)
+        mdot_choked = Cd * orifice_area * sqrt(2*p_unit/gamma1) * p_in_unit^gamma1 * (gamma - 1) / (gamma + 1) ...
+            / (p_in_unit^gamma3 / rho_in^2 * (((gamma + 1)/2)^(2/(gamma-1)) - area_ratio^2)^2 * (gamma - 1)^2 / (gamma + 1)^2 ...
+            + p_avg_unit^gamma3 / rho_avg^2 * (1/B_lam^gamma2 - area_ratio^2)^2 * (1 - B_lam^gamma1)^2)^0.25;
+    end
+
+    equations
+        % Mass flow rate through orifice
+        mdot_A == ...
+            if ge(p_out/p_in, B_crit), ...
+                if le(dir*mdot_unchoked, mdot_choked), ...
+                    mdot_unchoked ...
+                else ...
+                    dir*mdot_choked ...
+                end ...
+            else ...
+                dir*mdot_choked ...
+            end;
+
+        % Mass balance
+        mdot_A + mdot_B == 0;
+
+        % Energy balance
+        Phi_A + Phi_B == 0;
+
+        % Logging
+        area_Restriction == orifice_area;
+        mdot_Restriction == mdot_A;
+    end
+
+    % Apply mass flow rate constraint
+    if sizingComponent
+        if sizingConstraint
+            equations
+                mdot_A == mdot;
+            end
+        else
+            equations
+                (p_A - p_B) == dp;
+            end
+        end
+    else
+        equations % as I can't remove the variable, need to add equation
+            orifice_area_variable == orifice_area_fixed;
+        end
+    end
+
+
+end
