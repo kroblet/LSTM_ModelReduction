@@ -1,7 +1,7 @@
 init:
   stage: build
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+#  rules:
+#    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
 # Define the GitLab repository URL
     - REPO_URL="https://insidelabs-git.mathworks.com/imyrsini/lstm-model-reduction"
