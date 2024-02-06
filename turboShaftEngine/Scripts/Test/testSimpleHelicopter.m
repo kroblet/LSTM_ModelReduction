@@ -22,7 +22,7 @@ classdef testSimpleHelicopter < matlab.unittest.TestCase
             engineMode = 'ROM';
             testCase.loadModel
             set_param([testCase.modelName,'/Engine'],'LabelModeActivechoice', engineMode)
-            romSim = sim(testCase.modelName, 'SaveOutput', 'off');
+            romSim = sim(testCase.modelName, 'SaveOutput', 'on');
             
             % Verify that the simulation output is not empty
             testCase.verifyNotEmpty(romSim);   
