@@ -11,7 +11,6 @@ setup_repository:
       - $Env:CI_PROJECT_DIR
     expire_in: 1 hour
 
-
 init:
   stage: build
   dependencies:
@@ -21,3 +20,15 @@ init:
   script:
     # Open project
     - matlab -batch "openProject('$Env:CI_PROJECT_DIR')"
+
+testModelVariants:
+  stage: test
+  dependencies:
+  - setup_repository
+  script:
+    - matlab -batch "openProject('$Env:CI_PROJECT_DIR'); results = runtests([fullfile('$Env:CI_PROJECT_DIR', 'turboShaftEngine', 'Scripts', 'Test')]); assertSuccess(results);"
+  artifacts:
+    paths:
+      - TestResults/
+    when: always
+    expire_in: 1 week
