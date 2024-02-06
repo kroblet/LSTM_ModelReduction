@@ -12,5 +12,6 @@ init:
     # Change to the project directory
     - cd $PROJECT_DIR
     - matlab -batch "openProject('.\')"
-  only:
-    - merge_requests
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: on_success
