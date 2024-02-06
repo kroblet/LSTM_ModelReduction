@@ -3,13 +3,7 @@ init:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    # Define the GitLab repository URL
-    - Env:REPO_URL="git@insidelabs-git.mathworks.com:imyrsini/lstm-model-reduction.git"
-    # Define the directory where you want to clone the project
-    - Env:PROJECT_DIR="C:\\Users\\imyrsini\\MATLAB\\Projects\\my_matlab_project"
-    # Change to the project directory
-    - cd $PROJECT_DIR
     # Clone the project from GitLab
-    - git clone $REPO_URL 
+    - git clone CI_PROJECT_URL
     # Check if the project can open
     - matlab -batch "openProject('.\')"
