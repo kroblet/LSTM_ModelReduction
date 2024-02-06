@@ -4,6 +4,6 @@ init:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
     # Clone the project from GitLab
-    - git clone CI_PROJECT_URL
+    - git clone $Env:CI_PROJECT_URL
     # Check if the project can open
     - matlab -batch "openProject('.\')"
