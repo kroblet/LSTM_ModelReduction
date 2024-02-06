@@ -32,7 +32,7 @@ classdef testSimpleHelicopter < matlab.unittest.TestCase
             engineMode = 'PhysMod';
             testCase.loadModel
             set_param([testCase.modelName,'/Engine'],'LabelModeActivechoice', engineMode)
-            refSim = sim(testCase.modelName,'SaveOutput', 'off');
+            refSim = sim(testCase.modelName,'SaveOutput', 'on');
             
             % Verify that the simulation output is not empty
             testCase.verifyNotEmpty(refSim);
