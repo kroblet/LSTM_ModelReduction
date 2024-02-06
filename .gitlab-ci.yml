@@ -6,4 +6,4 @@ init:
     # Clone the project from GitLab
     - git clone $Env:CI_PROJECT_URL
     # Check if the project can open
-    - matlab -batch "openProject('.\')"
+    - matlab -batch "openProject('$Env:CI_PROJECT_DIR')"
