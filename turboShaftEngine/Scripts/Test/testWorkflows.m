@@ -26,7 +26,8 @@ classdef testWorkflows < matlab.unittest.TestCase
                 addpath(fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM"));
                 net_tN_Path = fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM","turboshaft_ROM_v6.mat");
                 net_Path = fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM","turboshaft_ROM_v5.mat");
-                run('turboshaftReduction.mlx')    
+                run('turboshaftReduction.mlx')
+                clear all
             catch ME
             end
         end 
