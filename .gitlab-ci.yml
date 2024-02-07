@@ -1,16 +1,36 @@
+setup_repository:
+  stage: .pre
+  rules:
+  - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    # Clone the project from GitLab
+    - git clone $Env:CI_PROJECT_URL
+
+  artifacts:
+    paths:
+      - $Env:CI_PROJECT_DIR
+    expire_in: 1 hour
+
 init:
   stage: build
-#  rules:
-#    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  dependencies:
+  - setup_repository
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    # Define the GitLab repository URL
-    - REPO_URL="https://insidelabs-git.mathworks.com/imyrsini/lstm-model-reduction"
-    # Define the directory where you want to clone the project
-    - PROJECT_DIR="C:\Users\imyrsini\MATLAB\Projects\my_matlab_project"
-    # Clone the project from GitLab
-    - git clone $REPO_URL $PROJECT_DIR
-    # Change to the project directory
-    - cd $PROJECT_DIR
-    - matlab -batch "openProject('.\')"
-  only:
-    - merge_requests
+    # Open project
+    - matlab -batch "openProject('$Env:CI_PROJECT_DIR')"
+
+testModelVariants:
+  stage: test
+  dependencies:
+  - setup_repository
+  rules:
+  - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - matlab -batch "openProject('$Env:CI_PROJECT_DIR'); results = runtests([fullfile('$Env:CI_PROJECT_DIR', 'turboShaftEngine', 'Scripts', 'Test')]);"
+#  artifacts:
+#    paths:
+#      - TestResults/
+#    when: always
+#    expire_in: 1 week
