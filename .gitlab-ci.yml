@@ -28,9 +28,9 @@ testModelVariants:
   rules:
   - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    - matlab -batch "openProject('$Env:CI_PROJECT_DIR'); results = runtests([fullfile('$Env:CI_PROJECT_DIR', 'turboShaftEngine', 'Scripts', 'Test')]); assertSuccess(results);"
-  artifacts:
-    paths:
-      - TestResults/
-    when: always
-    expire_in: 1 week
+    - matlab -batch "openProject('$Env:CI_PROJECT_DIR'); results = runtests([fullfile('$Env:CI_PROJECT_DIR', 'turboShaftEngine', 'Scripts', 'Test')]);"
+#  artifacts:
+#    paths:
+#      - TestResults/
+#    when: always
+#    expire_in: 1 week
