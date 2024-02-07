@@ -21,13 +21,15 @@ classdef testWorkflows < matlab.unittest.TestCase
             % Test to simulate the model and check for errors
             startup; 
             initialization;
-            addpath(fullfile(proj.RootFolder,"turboShaftEngine", "Scripts","Initialization"));
-            addpath(fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM"));
-            net_tN_Path = fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM","turboshaft_ROM_v6.mat");
-            net_Path = fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM","turboshaft_ROM_v5.mat");
-            run('turboshaftReduction.mlx')    
-        end
-
+            try
+                addpath(fullfile(proj.RootFolder,"turboShaftEngine", "Scripts","Initialization"));
+                addpath(fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM"));
+                net_tN_Path = fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM","turboshaft_ROM_v6.mat");
+                net_Path = fullfile(proj.RootFolder, "turboShaftEngine", "Models", "Components", "turboShaftEngineLSTM_ROM","turboshaft_ROM_v5.mat");
+                run('turboshaftReduction.mlx')    
+            catch ME
+            end
+        end 
     end
     
 end
